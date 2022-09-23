@@ -927,7 +927,7 @@ public plugin_init()
 	
 
 	register_clcmd( "radio3",		"Func_UseItem" );
-	register_clcmd( "+coduseitem",		"Func_UseItem" );
+	register_clcmd( "coduseitem",		"Func_UseItem" );
 	
 	register_impulse(100, 			"Func_ChangeModels");
 
