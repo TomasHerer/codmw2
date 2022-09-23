@@ -88,8 +88,8 @@ new g_maxplayers;
 
 enum _:BONUSVALUE
 {
-	gDEFUSE, gKILL, gPLANT, gALIVE, gSTART, gKILLVIP, gHEALTHVIP,
-	gSTARTVIP, gPLANTVIP, gDEFUSEVIP, gADMIN
+	gDEFUSE, gKILL, gPLANT, gALIVE, gKILLVIP, gHEALTHVIP,
+	gPLANTVIP, gDEFUSEVIP, gADMIN
 };
 
 new bCVARS[BONUSVALUE];
@@ -869,12 +869,11 @@ public plugin_init()
 	bCVARS[gPLANT] = register_cvar( "CODMOD_BONUS_PLANT", 			"30" ); // EXP
 	bCVARS[gKILL] = register_cvar( "CODMOD_BONUS_KILL", 			"20" ); // EXP
 	bCVARS[gALIVE] = register_cvar( "CODMOD_BONUS_ALIVE", 			"50" ); // EXP
-	bCVARS[gSTART] = register_cvar( "CODMOD_BONUS_START",			"5" );
 	
 	// VIP PLAYER BONUS
 	bCVARS[gKILLVIP] = register_cvar( "CODMOD_VIPBONUS_KILL", 		"40" ); // EXP
+	bCVARSMONEY[gMONEYVIP] = register_cvar( "CODMOD_VIPBONUS_KILLMONEY", 	"500" ); // +MONEY
 	bCVARS[gHEALTHVIP] = register_cvar( "CODMOD_VIPBONUS_HEALTH", 		"10" );
-	bCVARS[gSTARTVIP] = register_cvar( "CODMOD_VIPBONUS_START", 		"10" );
 	bCVARS[gPLANTVIP] = register_cvar( "CODMOD_VIPBONUS_PLANT", 		"10" );
 	bCVARS[gDEFUSEVIP] = register_cvar( "CODMOD_VIPBONUS_DEFUS", 		"10" );
 	bCVARS[gADMIN] = register_cvar( "CODMOD_VIPBONUS_ADMINACCESS",		"ADMIN_BAN" );
@@ -1882,7 +1881,6 @@ public Event_DeathMsg()
 			ShowSyncHudMsg(attacker, g_sync_hudmsg[6], "+%i XP", new_bonus);
 		
 			gPlayerExperience[attacker] += new_bonus;
-			cs_set_user_money( attacker, cs_get_user_money(attacker) + get_cvar_num(bCVARSMONEY[gMONEY]) );
 		}
 		if ( gPlayerItem[attacker][0] == 32 )
 		{
