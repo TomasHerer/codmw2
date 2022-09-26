@@ -45,7 +45,7 @@
 
 #define MOD_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<7)|(1<<9)
 #define UPG_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<7)|(1<<9)
-#define SHOP_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<7)|(1<<9)
+#define SHOP_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<7)|(1<<8)|(1<<9)
 #define SHOP2_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<7)|(1<<8)|(1<<9)
 #define BANK_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<9)
 #define BANK2_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<9)
@@ -60,7 +60,8 @@
 
 new const item_class_name[] = "dm_item";
 
-new const fVault_CallofDuty[] = "cod_databaza";
+new const fDataBase[] = "cod_databaza";
+new const fDataBase2[] = "codset_databaza";
 	
 new b_peniaze[33] = 0;
 
@@ -103,8 +104,7 @@ new bCVARSMONEY[BONUSVALUEMONEY];
 
 enum _:MODVALUE
 {
-	gMAXSPEED, gMINPLR_PLANT, gBPAMMO, gGAMENAME, gPOCASIE, 
-	gRANDOMHMLA, gHUSTOTAHMLY, gFARBAHMLY, gBLESKY, gBLESKYCAS, gMAXLEVEL, gSTARTXP
+	gMAXSPEED, gMINPLR_PLANT, gBPAMMO, gGAMENAME, gMAXLEVEL, gSTARTXP
 };
 
 new mCVARS[MODVALUE];
@@ -458,10 +458,12 @@ new CSW_MAXAMMO[33]= { -2, 200, 0, 200, 1, 200, 1, 100, 200, 1, 200, 200,
 
 new bool: bItemScopeAlert[33];
 
-new bool: nKillZoom[33];
-new bool: nShowHelpMsg[33];
-new bool: nStartEffect[33];
-new bool: nFastMenu[33];
+enum _:VALUE
+{
+	KILLZOOM, MESSAGE, EFFECT, FASTMENU, SKINS
+};
+
+new nSETTING[VALUE][33];
 
 new gItemBullets_Num[33];
 
@@ -483,8 +485,6 @@ new const Float:size[ ][ 3 ] =
 	{0.0, 0.0, 4.0}, {0.0, 0.0, -4.0}, {0.0, 4.0, 0.0}, {0.0, -4.0, 0.0}, {4.0, 0.0, 0.0}, {-4.0, 0.0, 0.0}, {-4.0, 4.0, 4.0}, {4.0, 4.0, 4.0}, {4.0, -4.0, 4.0}, {4.0, 4.0, -4.0}, {-4.0, -4.0, 4.0}, {4.0, -4.0, -4.0}, {-4.0, 4.0, -4.0}, {-4.0, -4.0, -4.0},
 	{0.0, 0.0, 5.0}, {0.0, 0.0, -5.0}, {0.0, 5.0, 0.0}, {0.0, -5.0, 0.0}, {5.0, 0.0, 0.0}, {-5.0, 0.0, 0.0}, {-5.0, 5.0, 5.0}, {5.0, 5.0, 5.0}, {5.0, -5.0, 5.0}, {5.0, 5.0, -5.0}, {-5.0, -5.0, 5.0}, {5.0, -5.0, -5.0}, {-5.0, 5.0, -5.0}, {-5.0, -5.0, -5.0}
 };
-
-new bool: nWeaponSkins[33];
 
 new const v_weaponmodels[][] = 
 {
@@ -641,14 +641,10 @@ new const s_thundersound[][] = { "codmw/thunder1.wav", "codmw/thunder2.wav" };
 new const s_radiosound[][] = { "codmw/radio01.wav", "codmw/radio02.wav", "codmw/radio03.wav", "codmw/radio04.wav",
 	"codmw/radio05.wav", "codmw/radio06.wav", "codmw/radio07.wav", "codmw/radio08.wav", "codmw/radio09.wav", "codmw/radio10.wav" };
 
-new r,g,b,g_density[4];
-
 new message[192];
 new strName[191];
 new strText[191];
 new alive[11];
-
-new g_playerlimit, g_reserveslot;
 
 public plugin_precache( )
 {
@@ -709,7 +705,6 @@ public plugin_precache( )
 	
 	sprite_white	= 	precache_model("sprites/codmw/white.spr") ;
 	sprite_blast	= 	precache_model("sprites/codmw/dexplo.spr");
-	dazd();
 }
 
 public plugin_init() 
@@ -762,12 +757,6 @@ public plugin_init()
 	mCVARS[gMINPLR_PLANT] = register_cvar( "CODMOD_MINPLAYERS_PLANT",	"1" );
 	mCVARS[gBPAMMO] = register_cvar( "CODMOD_BPAMMO",			"1" );
 	mCVARS[gGAMENAME] = register_cvar( "CODMOD_GAMENAME", 			"Call Of Duty v5.0" );
-	mCVARS[gPOCASIE] = register_cvar( "CODMOD_POCASIE", 			"0" );
-	mCVARS[gRANDOMHMLA] = register_cvar( "CODMOD_POCASIE_RANDOMHMLA", 	"0" );
-	mCVARS[gHUSTOTAHMLY] = register_cvar( "CODMOD_POCASIE_HUSTOTAHMLY", 	"0" );
-	mCVARS[gFARBAHMLY] = register_cvar( "CODMOD_POCASIE_FARBAHMLY", 		"150 150 150" );
-	mCVARS[gBLESKY] = register_cvar( "CODMOD_POCASIE_BLESKY", 		"0" );
-	mCVARS[gBLESKYCAS] = register_cvar( "CODMOD_POCASIE_BLESKYCAS", 		"40.0" );
 
 	uLIMIT[MAXINTELIGENCIA] = register_cvar( "CODMOD_UPGRADE_MAXINTELIGENCIA", "80" );
 	uLIMIT[MAXZIVOT] = register_cvar( "CODMOD_UPGRADE_MAXZIVOT", 		"80" );
@@ -867,11 +856,11 @@ public plugin_init()
 	// PLAYER BONUS
 	bCVARS[gDEFUSE] = register_cvar( "CODMOD_BONUS_DEFUS", 			"30" ); // EXP
 	bCVARS[gPLANT] = register_cvar( "CODMOD_BONUS_PLANT", 			"30" ); // EXP
-	bCVARS[gKILL] = register_cvar( "CODMOD_BONUS_KILL", 			"20" ); // EXP
+	bCVARS[gKILL] = register_cvar( "CODMOD_BONUS_KILL", 			"40" ); // EXP
 	bCVARS[gALIVE] = register_cvar( "CODMOD_BONUS_ALIVE", 			"50" ); // EXP
 	
 	// VIP PLAYER BONUS
-	bCVARS[gKILLVIP] = register_cvar( "CODMOD_VIPBONUS_KILL", 		"40" ); // EXP
+	bCVARS[gKILLVIP] = register_cvar( "CODMOD_VIPBONUS_KILL", 		"60" ); // EXP
 	bCVARSMONEY[gMONEYVIP] = register_cvar( "CODMOD_VIPBONUS_KILLMONEY", 	"500" ); // +MONEY
 	bCVARS[gHEALTHVIP] = register_cvar( "CODMOD_VIPBONUS_HEALTH", 		"10" );
 	bCVARS[gPLANTVIP] = register_cvar( "CODMOD_VIPBONUS_PLANT", 		"10" );
@@ -977,14 +966,6 @@ public plugin_init()
 	
 	set_task( 60.0, "Pomoc" );
 	set_task( 20.0, "Func_BGRadio" );
-	
-	if( get_pcvar_num( mCVARS[gPOCASIE] ) )
-	{
-		if( get_pcvar_num( mCVARS[gBLESKY] ) )
-		{
-			set_task( get_pcvar_float( mCVARS[gBLESKYCAS] ),"blesk", 0,_,_,"b" );
-		}
-	}
 }
 
 
@@ -998,71 +979,14 @@ public plugin_cfg( )
 	auto_exec_config( "codmw" );
 
 	server_cmd("sv_maxspeed %i", mCVARS[gMAXSPEED]);
-	g_reserveslot = get_cvar_num("amx_reservation");	// config.cfg -. Počet rezervovaných slotov
-	
-	g_playerlimit = g_maxplayers - g_reserveslot;
-
-	if ((get_cvar_num("amx_hideslots") == 1) && g_reserveslot >= 1)
-		set_cvar_num("sv_visiblemaxplayers", g_playerlimit);
-}
-
-public plugin_natives( )
-{
-	register_native( "cod_get_user_xp", "native_get_user_xp" );
-	register_native( "cod_set_user_xp", "native_set_user_xp" );
-	
-	register_native( "cod_get_user_level", "native_get_user_level" );
-	register_native( "cod_", "native_" );
-	
-	register_native( "cod_", "native_" );
-}
-
-public blesk()
-{
-	engfunc(EngFunc_LightStyle,0, "e");
-	client_cmd(0, "spk sound/%s", s_thundersound[0] );
-	set_task(3.0, "blesk2");
-}
-
-public blesk2()
-{
-	engfunc(EngFunc_LightStyle,0, "c");
-	client_cmd(0, "spk sound/%s", s_thundersound[1]  );
-	set_task(5.0, "blesk3");
-}
-
-public blesk3()
-{
-	engfunc(EngFunc_LightStyle,0, "e");
-	client_cmd(0, "spk sound/%s", s_thundersound[0] );
-	set_task(3.0, "end_blesk");
-}
-public end_blesk()
-{
-	engfunc(EngFunc_LightStyle,0, "i");
-}
-
-public dazd()
-{
-	engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, "env_rain"));
-}
-
-public client_putinserver(id) 
-{
-	set_task(0.1, "set_fog2", id);
 }
 
 public client_connect(id)
 {	
-	if( get_pcvar_num( mCVARS[gPOCASIE] ) )
-	{
-		set_cvar_string("sv_skyname","drkg");
-		engfunc(EngFunc_LightStyle,0, "i");
-	}
-	
 	gPlayerClass[id] = 0;
 	gPlayerLevel[id] = 0;
 	gPlayerExperience[id] = 0;
+	
 	uITEMS[POINTS][id] = 0;
 	uITEMS[ZIVOT][id] = 0;
 	uITEMS[INTELIGENCIA][id] = 0;
@@ -1086,13 +1010,15 @@ public client_connect(id)
 	sMAXNUM[id][sXPPACK2] = 0;
 	sMAXNUM[id][sXPPACK3] = 0;
 	
-	nKillZoom[id] = true;
-	nShowHelpMsg[id] = true;
-	nStartEffect[id] = true;
-	nFastMenu[id] = true;
-	nWeaponSkins[id] = true;
+	nSETTING[ KILLZOOM ][ id ] = 1;
+	nSETTING[ MESSAGE ][ id ] = 1;
+	nSETTING[ EFFECT ][ id ] = 1;
+	nSETTING[ FASTMENU ][ id ] = 1;
+	nSETTING[ SKINS ][ id ] = 1;
 	
 	sGETITEM[id][bVIPMODE] = false;
+	
+	LoadData2( id );
 	
 	get_user_authid(id, g_szAuthID[id], charsmax(g_szAuthID[]));
 	
@@ -1118,24 +1044,8 @@ public client_disconnect(id)
 	
 	Func_RemoveItem(id);
 	SaveData(id);
+	SaveData2( id );
 	Func_RemoveUserVip(id);
-}
-
-public client_authorized(id)
-{
-	new userid = get_user_userid(id);
-	new players = get_playersnum(1);
-
-	if ((players > g_playerlimit)  && !(get_user_flags(id) & VIP_ACCESS) )
-	{
-		if (!userid)
-		{
-			server_cmd("kick #%d Prepacte, ale slot je rezervovany pre VIP Hraca.", userid);
-			return PLUGIN_CONTINUE;
-		}
-	}
-	
-	return PLUGIN_CONTINUE;
 }
 
 public Fwd_CmdStart( id, uc_handle )
@@ -1231,8 +1141,8 @@ public Ham_PlayerSpawn( id )
 	sMAXNUM[id][sXPPACK2] = 0;
 	sMAXNUM[id][sXPPACK3] = 0;
 	
-	strip_user_weapons(id);
-	give_item(id, "weapon_knife");
+	//strip_user_weapons(id);
+	//give_item(id, "weapon_knife");
 	switch(get_user_team(id))
 	{
 		case 1: give_item(id, "weapon_glock18");
@@ -1254,7 +1164,7 @@ public Ham_PlayerSpawn( id )
 	}
 	else
 	{
-		if ( nFastMenu[id] )
+		if ( nSETTING[ FASTMENU][id] )
 		{
 			Cmd_ModMenu(id);
 		}
@@ -1442,7 +1352,7 @@ public Event_CurWeapon(id, ent)
 			
 	new weapon = read_data(2);
 	
-	if (nWeaponSkins[id])
+	if ( nSETTING[ SKINS ][ id ] )
 	{
 		switch (weapon)
 		{
@@ -1619,7 +1529,7 @@ public Event_CurWeapon(id, ent)
 			cs_set_user_bpammo(id, weapon, CSW_MAXAMMO[weapon]);
 		
 		return PLUGIN_CONTINUE;	
-	} else return PLUGIN_CONTINUE;
+	} else return PLUGIN_HANDLED;
 	return PLUGIN_HANDLED;
 }
 
@@ -1634,7 +1544,7 @@ public LogEvent_RoundStart()
 		
 		set_task(0.1, "Func_SetPlayerClassSpeed", id+TASK_SET_SPEED);
 		
-		if(nStartEffect[id])
+		if(nSETTING[ EFFECT][id])
 		{
 			set_task(0.1, "FuncStartFade", id);
 			new rand = random_num(1,4);
@@ -1932,7 +1842,7 @@ public Ham_PlayerKilled(victim, attacker)
 	{
 		set_task(1.0, "Func_PlayerRespawn", victim + TASK_PLAYER_RESPAWN);
 	}
-	if (nKillZoom[victim])
+	if ( nSETTING[ KILLZOOM][victim] )
 	{
 		if (attacker != victim || is_user_connected(attacker))
 		{
@@ -2451,22 +2361,20 @@ public Cmd_HelpMenu_Handler(id, key)
 	return PLUGIN_HANDLED;
 }
 
-
-
 public Cmd_HerneNastavenia(id)
 {
 	new SettingTexT[556];
 	
 	new nLen = format( SettingTexT, 555, "\rHerne Nastavenia:" );
-	nLen += format( SettingTexT[nLen], 555-nLen, "^n\y1. \wKill Zoom [%s\w]", ( nKillZoom[id] == true ) ? "\yZAPNUTE" : "\rVYPNUTE" );
+	nLen += format( SettingTexT[nLen], 555-nLen, "^n\y1. \wKill Zoom [%s\w]", ( nSETTING[ KILLZOOM ][ id ] == 1 ) ? "\yZAPNUTE" : "\rVYPNUTE" );
 	nLen += format( SettingTexT[nLen], 555-nLen, "^n\d - Priblizenie obrazovky na utocnika." );
-	nLen += format( SettingTexT[nLen], 555-nLen, "^n\y2. \wInfo Spravy [%s\w]" , ( nShowHelpMsg[id] == true ) ? "\yZAPNUTE" : "\rVYPNUTE" );
+	nLen += format( SettingTexT[nLen], 555-nLen, "^n\y2. \wInfo Spravy [%s\w]" , ( nSETTING[ MESSAGE ][ id ] == 1 ) ? "\yZAPNUTE" : "\rVYPNUTE" );
 	nLen += format( SettingTexT[nLen], 555-nLen, "^n\d - Zobrazenie Pomocnych sprav v chate." );
-	nLen += format( SettingTexT[nLen], 555-nLen, "^n\y3. \wStart Effect [%s\w]" , ( nStartEffect[id] == true ) ? "\yZAPNUTE" : "\rVYPNUTE" );
+	nLen += format( SettingTexT[nLen], 555-nLen, "^n\y3. \wStart Effect [%s\w]" , ( nSETTING[ EFFECT ][ id ] == 1 ) ? "\yZAPNUTE" : "\rVYPNUTE" );
 	nLen += format( SettingTexT[nLen], 555-nLen, "^n\d - Na zaciatku kola sa spusti hudba + zeleny fade.." );
-	nLen += format( SettingTexT[nLen], 555-nLen, "^n\y4. \wFast Menu [%s\w]" , ( nFastMenu[id] == true ) ? "\yZAPNUTE" : "\rVYPNUTE" );
+	nLen += format( SettingTexT[nLen], 555-nLen, "^n\y4. \wFast Menu [%s\w]" , ( nSETTING[ FASTMENU ][ id ] == 1 ) ? "\yZAPNUTE" : "\rVYPNUTE" );
 	nLen += format( SettingTexT[nLen], 555-nLen, "^n\d - Zobrazovanie hlavneho menu pri spawne.." );
-	nLen += format( SettingTexT[nLen], 555-nLen, "^n\y5. \wModely Zbrani [%s\w]" , ( nWeaponSkins[id] == true ) ? "\yZAPNUTE" : "\rVYPNUTE" );
+	nLen += format( SettingTexT[nLen], 555-nLen, "^n\y5. \wModely Zbrani [%s\w]" , ( nSETTING[ SKINS ][ id ] == 1 ) ? "\yZAPNUTE" : "\rVYPNUTE" );
 	nLen += format( SettingTexT[nLen], 555-nLen, "^n\d - Nove modely pre zbrane." );
 	
 	nLen += format( SettingTexT[nLen], 555-nLen, "^n\y6. Herne Menu" );
@@ -2477,52 +2385,52 @@ public Cmd_HerneNastavenia(id)
 
 public Cmd_HerneNastavenia_Handler(id, key) 
 {
-	SelectSounds(id);
 	switch ( key ) 
 	{
 		case 0:
 		{
-			nKillZoom[id] = ( nKillZoom[id] == true ) ? false : true;
+			nSETTING[ KILLZOOM ][ id ] = ( nSETTING[ KILLZOOM ][ id ] == 1 ) ? 0 : 1;
 			Cmd_HerneNastavenia(id);
 		}
 		case 1:
 		{
-			nShowHelpMsg[id] = ( nShowHelpMsg[id] == true ) ? false : true;
+			nSETTING[ MESSAGE ][ id ] = ( nSETTING[ MESSAGE ][ id ] == 1 ) ? 0 : 1;
 			Cmd_HerneNastavenia(id);
 		}
 		case 2:
 		{
-			nStartEffect[id] = ( nStartEffect[id] == true ) ? false : true;
+			nSETTING[ EFFECT ][ id ] = ( nSETTING[ EFFECT ][ id ] == 1 ) ? 0 : 1;
 			Cmd_HerneNastavenia(id);
 		}
 		case 3:
 		{
-			nFastMenu[id] = ( nFastMenu[id] == true ) ? false : true;
+			nSETTING[ FASTMENU ][ id ] = ( nSETTING[ FASTMENU ][ id ] == 1 ) ? 0 : 1;
 			Cmd_HerneNastavenia(id);
 		}
 		case 4:
 		{
-			nWeaponSkins[id] = ( nWeaponSkins[id] == true ) ? false : true;
-			Cmd_HerneNastavenia(id);
+			nSETTING[ SKINS ][ id ] = ( nSETTING[ SKINS ][ id ] == 1 ) ? 0 : 1;
+			Cmd_HerneNastavenia( id );
 		}
 		case 5:
 		{
-			Cmd_ModMenu(id);
+			Cmd_ModMenu( id );
 		}
 		case 9: return PLUGIN_HANDLED;
 	}
+	SaveData2( id );
 	return PLUGIN_HANDLED;
 }
 
 public Func_ChangeModels( id )
 {
-	if ( nWeaponSkins[id] == true )
+	if ( nSETTING[ SKINS ][ id ] == 1 )
 	{
-		nWeaponSkins[id] = false;
+		nSETTING[ SKINS ][ id ] = 0;
 		ColorMsg( id, "^1[^4%s^1] Modely/Skiny zbrani boli^4 VYPNUTE", PLUGIN );
-	} else if ( nWeaponSkins[id] == false )
+	} else if ( nSETTING[ SKINS ][ id ] == 0 )
 	{
-		nWeaponSkins[id] = true;
+		nSETTING[ SKINS ][ id ] = 1;
 		ColorMsg( id, "^1[^4%s^1] Modely/Skiny zbrani boli^4 ZAPNUTE", PLUGIN );
 	}
 	return PLUGIN_CONTINUE;
@@ -3085,7 +2993,10 @@ public Cmd_ShopMenu(id)
 	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_DEFUSKIT]) ) nLen += format( ShopText[nLen], 511-nLen, "^n\y6. \d[\yLEVEL:\r %i\d] \dDefuseKit", get_pcvar_num(sCVARS[LEVEL_DEFUSKIT]));
 	else nLen += format( ShopText[nLen], 511-nLen, "^n\y6.\w DefuseKit \d[\r<CT ONLY> \dBalicek na zneskodnenie bomby] \R \y%i $", get_pcvar_num(sCVARS[COST_DEFUSKIT]));
 	
-	nLen += format( ShopText[nLen], 511-nLen, "^n^n\y7.\w Dalej" );
+	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_EXTRATOMBOLA]) ) nLen += format( ShopText[nLen], 511-nLen, "^n\y1. \d[\yLEVEL:\r %i\d] \dExtra Tombola", get_pcvar_num(sCVARS[LEVEL_EXTRATOMBOLA]));
+	else nLen += format( ShopText[nLen], 511-nLen, "^n\y7.\w Extra Tombola \d[(%s%i\d/\r%i\d) tiketov] \R \y%i $", ( sMAXNUM[id][sEXTRATOMBOLA] != get_pcvar_num(sCVARS[MAX_EXTRATOMBOLA]) ) ? "\y" : "\r",sMAXNUM[id][sEXTRATOMBOLA], get_pcvar_num(sCVARS[MAX_EXTRATOMBOLA]), get_pcvar_num(sCVARS[COST_EXTRATOMBOLA]));
+	
+	nLen += format( ShopText[nLen], 511-nLen, "^n^n\y8.\w Dalej" );
 	nLen += format( ShopText[nLen], 511-nLen, "^n\y0.\w Koniec" );
 	
 	show_menu(id, SHOP_MENU, ShopText, -1, "ShopMenuSelect" );
@@ -3102,26 +3013,23 @@ public Cmd_Shop2Menu(id)
 	new nLen = format( ShopText, 511, "\yObchod (Strana 2)^n" );
 	
 	
-	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_EXTRATOMBOLA]) ) nLen += format( ShopText[nLen], 511-nLen, "^n\y1. \d[\yLEVEL:\r %i\d] \dExtra Tombola", get_pcvar_num(sCVARS[LEVEL_EXTRATOMBOLA]));
-	else nLen += format( ShopText[nLen], 511-nLen, "^n\y1.\w Extra Tombola \d[(%s%i\d/\r%i\d) tiketov] \R \y%i $", ( sMAXNUM[id][sEXTRATOMBOLA] != get_pcvar_num(sCVARS[MAX_EXTRATOMBOLA]) ) ? "\y" : "\r",sMAXNUM[id][sEXTRATOMBOLA], get_pcvar_num(sCVARS[MAX_EXTRATOMBOLA]), get_pcvar_num(sCVARS[COST_EXTRATOMBOLA]));
-	
 	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_PARACHUTE]) ) nLen += format( ShopText[nLen], 511-nLen, "^n\y2. \d[\yLEVEL:\r %i\d] \dPadak", get_pcvar_num(sCVARS[LEVEL_PARACHUTE]));
-	else nLen += format( ShopText[nLen], 511-nLen, "^n\y2.\w Padak \d[\r<NA CELU MAPU> \dPismeno \y'E'\d] \R \y%i $", get_pcvar_num(sCVARS[COST_PARACHUTE]));
+	else nLen += format( ShopText[nLen], 511-nLen, "^n\y1.\w Padak \d[\r<NA CELU MAPU> \dPismeno \y'E'\d] \R \y%i $", get_pcvar_num(sCVARS[COST_PARACHUTE]));
 	
 	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_TELEPORTNADE]) ) nLen += format( ShopText[nLen], 511-nLen, "^n\y3. \d[\yLEVEL:\r %i\d] \dTeleportacny Granat \r(VIP)", get_pcvar_num(sCVARS[LEVEL_TELEPORTNADE]));
-	else nLen += format( ShopText[nLen], 511-nLen, "^n\y3.\w Teleportacny Granat \r(VIP) \d[Pri dopade sa teleportnete. (%s%i\d/\r%i\d)] \R \y%i %s", ( sMAXNUM[id][sTELEPORTNADE] != get_pcvar_num(sCVARS[MAX_TELEPORTNADE]) ) ? "\y" : "\r",sMAXNUM[id][sTELEPORTNADE], get_pcvar_num(sCVARS[MAX_TELEPORTNADE]), get_pcvar_num(sCVARS[COST_TELEPORTNADE]) );
+	else nLen += format( ShopText[nLen], 511-nLen, "^n\y2.\w Teleportacny Granat \r(VIP) \d[Pri dopade sa teleportnete. (%s%i\d/\r%i\d)] \R \y%i %s", ( sMAXNUM[id][sTELEPORTNADE] != get_pcvar_num(sCVARS[MAX_TELEPORTNADE]) ) ? "\y" : "\r",sMAXNUM[id][sTELEPORTNADE], get_pcvar_num(sCVARS[MAX_TELEPORTNADE]), get_pcvar_num(sCVARS[COST_TELEPORTNADE]) );
 	
 	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_GODMODE]) ) nLen += format( ShopText[nLen], 511-nLen, "^n\y4. \d[\yLEVEL:\r %i\d] \dNesmrtelnost \r(VIP)", get_pcvar_num(sCVARS[LEVEL_GODMODE]));
-	else nLen += format( ShopText[nLen], 511-nLen, "^n\y4.\w Nesmrtelnost \r(VIP) \d[\y %.f \dsekund - pismeno \y'C'\d (%s%i\d/\r%i\d)] \R \y%i $", get_pcvar_float(sCVARS[GET_TIMEGODMODE]),( sMAXNUM[id][sGODMODE] != get_pcvar_num(sCVARS[MAX_GODMODE]) ) ? "\y" : "\r",  sMAXNUM[id][sGODMODE], get_pcvar_num(sCVARS[MAX_GODMODE]), get_pcvar_num(sCVARS[COST_GODMODE]));
+	else nLen += format( ShopText[nLen], 511-nLen, "^n\y3.\w Nesmrtelnost \r(VIP) \d[\y %.f \dsekund - pismeno \y'C'\d (%s%i\d/\r%i\d)] \R \y%i $", get_pcvar_float(sCVARS[GET_TIMEGODMODE]),( sMAXNUM[id][sGODMODE] != get_pcvar_num(sCVARS[MAX_GODMODE]) ) ? "\y" : "\r",  sMAXNUM[id][sGODMODE], get_pcvar_num(sCVARS[MAX_GODMODE]), get_pcvar_num(sCVARS[COST_GODMODE]));
 	
 	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_XPPACK]) ) nLen += format( ShopText[nLen], 511-nLen, "^n\y5. \d[\yLEVEL:\r %i\d] \dBalicek Skusenosti", get_pcvar_num(sCVARS[LEVEL_XPPACK]));
-	else nLen += format( ShopText[nLen], 511-nLen, "^n\y5.\w Balicek Skusenosti \d[\y+%i\r XP \d(%s%i\d/\r%i\d)] \R \y%i $", get_pcvar_num(sCVARS[GET_XPPACK]),( sMAXNUM[id][sXPPACK] != get_pcvar_num(sCVARS[MAX_XPPACK]) ) ? "\y" : "\r", sMAXNUM[id][sXPPACK], get_pcvar_num(sCVARS[MAX_XPPACK]), get_pcvar_num(sCVARS[COST_XPPACK]));
+	else nLen += format( ShopText[nLen], 511-nLen, "^n\y4.\w Balicek Skusenosti \d[\y+%i\r XP \d(%s%i\d/\r%i\d)] \R \y%i $", get_pcvar_num(sCVARS[GET_XPPACK]),( sMAXNUM[id][sXPPACK] != get_pcvar_num(sCVARS[MAX_XPPACK]) ) ? "\y" : "\r", sMAXNUM[id][sXPPACK], get_pcvar_num(sCVARS[MAX_XPPACK]), get_pcvar_num(sCVARS[COST_XPPACK]));
 	
 	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_XPPACK2]) ) nLen += format( ShopText[nLen], 511-nLen, "^n\y6. \d[\yLEVEL:\r %i\d] \dExtra Skusenosti", get_pcvar_num(sCVARS[LEVEL_XPPACK2]));
-	else nLen += format( ShopText[nLen], 511-nLen, "^n\y6.\w Extra Skusenosti \d[\y+%i\r XP \d(%s%i\d/\r%i\d)] \R \y%i $", get_pcvar_num(sCVARS[GET_XPPACK2]),( sMAXNUM[id][sXPPACK2] != get_pcvar_num(sCVARS[MAX_XPPACK2]) ) ? "\y" : "\r", sMAXNUM[id][sXPPACK2], get_pcvar_num(sCVARS[MAX_XPPACK2]), get_pcvar_num(sCVARS[COST_XPPACK2]));
+	else nLen += format( ShopText[nLen], 511-nLen, "^n\y5.\w Extra Skusenosti \d[\y+%i\r XP \d(%s%i\d/\r%i\d)] \R \y%i $", get_pcvar_num(sCVARS[GET_XPPACK2]),( sMAXNUM[id][sXPPACK2] != get_pcvar_num(sCVARS[MAX_XPPACK2]) ) ? "\y" : "\r", sMAXNUM[id][sXPPACK2], get_pcvar_num(sCVARS[MAX_XPPACK2]), get_pcvar_num(sCVARS[COST_XPPACK2]));
 	
 	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_XPPACK3]) ) nLen += format( ShopText[nLen], 511-nLen, "^n\y7. \d[\yLEVEL:\r %i\d] \dPlatinum Skusenosti", get_pcvar_num(sCVARS[LEVEL_XPPACK3]));
-	else nLen += format( ShopText[nLen], 511-nLen, "^n\y7.\w Platinum Skusenosti \d[\y+%i\r XP \d(%s%i\d/\r%i\d)] \R \y%i $", get_pcvar_num(sCVARS[GET_XPPACK3]),( sMAXNUM[id][sXPPACK3] != get_pcvar_num(sCVARS[MAX_XPPACK3]) ) ? "\y" : "\r", sMAXNUM[id][sXPPACK3], get_pcvar_num(sCVARS[MAX_XPPACK3]), get_pcvar_num(sCVARS[COST_XPPACK3]));
+	else nLen += format( ShopText[nLen], 511-nLen, "^n\y6.\w Platinum Skusenosti \d[\y+%i\r XP \d(%s%i\d/\r%i\d)] \R \y%i $", get_pcvar_num(sCVARS[GET_XPPACK3]),( sMAXNUM[id][sXPPACK3] != get_pcvar_num(sCVARS[MAX_XPPACK3]) ) ? "\y" : "\r", sMAXNUM[id][sXPPACK3], get_pcvar_num(sCVARS[MAX_XPPACK3]), get_pcvar_num(sCVARS[COST_XPPACK3]));
 	
 	nLen += format( ShopText[nLen], 511-nLen, "^n^n\y8.\w Spat" );
 	nLen += format( ShopText[nLen], 511-nLen, "^n\y0.\w Koniec" );
@@ -3305,20 +3213,7 @@ public Cmd_ShopMenu_Handler(id, key)
 			
 			ColorMsg( id, "^1[^4%s^1] Kupil si^3 DefuseKit^1.", SHOPNAME );
 		}
-		case 6: Cmd_Shop2Menu(id);
-		case 9: return PLUGIN_HANDLED;
-	}
-	return PLUGIN_HANDLED;
-}
-
-public Cmd_Shop2Menu_Handler(id, key) 
-{
-	SelectSounds(id);
-	new money = cs_get_user_money( id );
-	
-	switch ( key ) 
-	{
-		case 0:
+		case 6:
 		{
 			if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_EXTRATOMBOLA]) )
 			{
@@ -3335,14 +3230,27 @@ public Cmd_Shop2Menu_Handler(id, key)
 				ColorMsg( id, "^1[^4%s^1] Dosiahol si maximalny pocet vyuzitia itemu.", SHOPNAME );
 				return PLUGIN_CONTINUE;
 			}
-			cs_set_user_money(id, money - get_pcvar_num(sCVARS[COST_EXTRATOMBOLA]));
+			cs_set_user_money(id, money - get_pcvar_num(sCVARS[COST_TOMBOLA]));
 			sMAXNUM[id][sEXTRATOMBOLA]++;
 			
 			ColorMsg( id, "^1[^4%s^1] Kupil si^3 Extra Tombolu^1.", SHOPNAME );
-			ColorMsg( id, "^1[^4%s^1] Prebieha losovanie ...", SHOPNAME3 );
+			ColorMsg( id, "^1[^4%s^1] Prebieha losovanie ...", SHOPNAME2 );
 			set_task( 0.2, "Tombola2", id );
 		}
-		case 1:
+		case 7: Cmd_Shop2Menu(id);
+		case 9: return PLUGIN_HANDLED;
+	}
+	return PLUGIN_HANDLED;
+}
+
+public Cmd_Shop2Menu_Handler(id, key) 
+{
+	SelectSounds(id);
+	new money = cs_get_user_money( id );
+	
+	switch ( key ) 
+	{
+		case 0:
 		{
 			if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_PARACHUTE]) )
 			{
@@ -3364,7 +3272,7 @@ public Cmd_Shop2Menu_Handler(id, key)
 			
 			ColorMsg( id, "^1[^4%s^1] Kupil si^3 Padak^1.", SHOPNAME );
 		}
-		case 2:
+		case 1:
 		{
 			if( !(get_user_flags(id) & VIP_ACCESS) )
 			{
@@ -3393,7 +3301,7 @@ public Cmd_Shop2Menu_Handler(id, key)
 			
 			ColorMsg( id, "^1[^4%s^1] Kupil si^3 Teleportacny Granat^1.", SHOPNAME );
 		}
-		case 3:
+		case 2:
 		{
 			if( !(get_user_flags(id) & VIP_ACCESS) )
 			{
@@ -3420,7 +3328,7 @@ public Cmd_Shop2Menu_Handler(id, key)
 			sGETITEM[id][bGODMODE] = true;
 			ColorMsg( id, "^1[^4%s^1] Kupil si^3 Nesmrtelnost^1.", SHOPNAME );
 		}
-		case 4:
+		case 3:
 		{
 			if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_XPPACK]) )
 			{
@@ -3443,7 +3351,7 @@ public Cmd_Shop2Menu_Handler(id, key)
 			ColorMsg( id, "^1[^4%s^1] Kupil si^3 Balicek Skusenosti^1.", SHOPNAME );
 			Func_CheckPlayerLevel(id);
 		}
-		case 5:
+		case 4:
 		{
 			if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_XPPACK2]) )
 			{
@@ -3466,7 +3374,7 @@ public Cmd_Shop2Menu_Handler(id, key)
 			ColorMsg( id, "^1[^4%s^1] Kupil si^3 Extra Skusenosti^1.", SHOPNAME );
 			Func_CheckPlayerLevel(id);
 		}
-		case 6:
+		case 5:
 		{
 			if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_XPPACK3]) )
 			{
@@ -4409,11 +4317,11 @@ public SaveData(id)
 	get_user_authid(id, steamid, sizeof(steamid) - 1);
 
 	new fkey[84];
-	new fdata[256];
-	format(fkey,83,"%s-%i-codmw",steamid, gPlayerClass[id]);
-	format(fdata,255,"%i#%i#%i#%i#%i#%i#%i#%i", gPlayerExperience[id], gPlayerLevel[id], b_peniaze[id], uITEMS[INTELIGENCIA][id], uITEMS[ZIVOT][id], uITEMS[VYTRVALOST][id], uITEMS[RYCHLOST][id], uITEMS[VESTA][id]);
+	new fdata[456];
+	format(fkey,83,"%s-%i-codmw",steamid, gPlayerClass[ id ]);
+	format(fdata,455,"%i#%i#%i#%i#%i#%i#%i#%i", gPlayerExperience[ id ], gPlayerLevel[ id ], b_peniaze[ id ], uITEMS[ INTELIGENCIA ][ id ], uITEMS[ ZIVOT ][ id ], uITEMS[ VYTRVALOST ][ id ], uITEMS[ RYCHLOST ][ id ], uITEMS[ VESTA ][ id ] );
 
-	fvault_set_data(fVault_CallofDuty, fkey, fdata);
+	fvault_set_data( fDataBase, fkey, fdata);
 }
 
 public LoadData(id, class)
@@ -4423,24 +4331,61 @@ public LoadData(id, class)
 	new fkey[84];
 	new fdata[456];
 	format(fkey,83,"%s-%i-codmw", steamid, class);
-	format(fdata,455,"%i#%i#%i#%i#%i#%i#%i#%i", gPlayerExperience[id], gPlayerLevel[id], b_peniaze[id], uITEMS[INTELIGENCIA][id], uITEMS[ZIVOT][id], uITEMS[VYTRVALOST][id], uITEMS[RYCHLOST][id], uITEMS[VESTA][id]);
-	fvault_get_data(fVault_CallofDuty, fkey, fdata, 255);
+	format(fdata,455,"%i#%i#%i#%i#%i#%i#%i#%i", gPlayerExperience[ id ], gPlayerLevel[ id ], b_peniaze[ id ], uITEMS[ INTELIGENCIA ][ id ], uITEMS[ ZIVOT ][ id ], uITEMS[ VYTRVALOST ][ id ], uITEMS[ RYCHLOST ][ id ], uITEMS[ VESTA ][ id ] );
+	fvault_get_data( fDataBase, fkey, fdata, 455);
 	
 	replace_all(fdata, 455, "#", " ");
 	
-	new experienceplayer[32], levelplayer[32], bankamoney[32], inteligencjaplayer[32], silaplayer[32], zrecznoscplayer[32], zwinnoscplayer[32], armorplayer[32];
+	new fXP[ 32 ], fLevel[ 32 ], fBank[ 32 ], fInteligencia[ 32 ], fZivot[ 32 ], fVytrvalost[ 32 ], fRychlost[ 32 ], fVesta[ 32 ];
 	
-	parse(fdata, experienceplayer, 31, levelplayer, 31, bankamoney, 31, inteligencjaplayer, 31, silaplayer, 31, zrecznoscplayer, 31, zwinnoscplayer, 31, armorplayer, 31);
+	parse(fdata, fXP, 31, fLevel, 31, fBank, 31, fInteligencia, 31, fZivot, 31, fVytrvalost, 31, fRychlost, 31, fVesta, 31 );
 	
-	gPlayerExperience[id] = str_to_num(experienceplayer);
-	gPlayerLevel[id] = str_to_num(levelplayer)>0?str_to_num(levelplayer):1;
-	b_peniaze[id] = str_to_num(bankamoney);
-	uITEMS[INTELIGENCIA][id] = str_to_num(inteligencjaplayer);
-	uITEMS[ZIVOT][id] = str_to_num(silaplayer);
-	uITEMS[VYTRVALOST][id] = str_to_num(zrecznoscplayer);
-	uITEMS[RYCHLOST][id] = str_to_num(zwinnoscplayer);
-	uITEMS[VESTA][id] = str_to_num(armorplayer);
-	uITEMS[POINTS][id] = (gPlayerLevel[id]-1)*2-uITEMS[INTELIGENCIA][id]-uITEMS[ZIVOT][id]-uITEMS[VYTRVALOST][id]-uITEMS[RYCHLOST][id]-uITEMS[VESTA][id];
+	gPlayerExperience[id] = str_to_num( fXP );
+	gPlayerLevel[id] = str_to_num( fLevel ) > 0 ? str_to_num( fLevel ) : 1;
+	b_peniaze[id] = str_to_num( fBank );
+	
+	uITEMS[ INTELIGENCIA ][ id ] = str_to_num( fInteligencia );
+	uITEMS[ ZIVOT ][ id ] = str_to_num( fZivot );
+	uITEMS[ VYTRVALOST ] [id ] = str_to_num( fVytrvalost );
+	uITEMS[ RYCHLOST ][ id ] = str_to_num( fRychlost );
+	uITEMS[ VESTA ][ id ] = str_to_num( fVesta );
+	uITEMS[ POINTS ][ id ] = ( gPlayerLevel[ id ]-1 )*2-uITEMS[ INTELIGENCIA ][ id ]-uITEMS[ ZIVOT ][ id ]-uITEMS[ VYTRVALOST ][ id ]-uITEMS[ RYCHLOST ][ id ]-uITEMS[ VESTA ][ id ];
+} 
+
+public SaveData2( id )
+{
+	new steamid[ 35 ];
+	get_user_authid(id, steamid, sizeof ( steamid ) - 1);
+
+	new fkey[ 54 ];
+	new fdata[ 26 ];
+	format( fkey,53, "%s-codmwsetting",steamid );
+	format( fdata, 25, "%i#%i#%i#%i", nSETTING[ KILLZOOM ][ id ], nSETTING[ MESSAGE ][ id ], nSETTING[ EFFECT ][ id ], nSETTING[ SKINS ][ id ] );
+
+	fvault_set_data( fDataBase2, fkey, fdata );
+}
+
+public LoadData2( id )
+{
+	new steamid[ 35 ];
+	get_user_authid(id, steamid, sizeof ( steamid ) - 1);
+
+	new fkey[ 54 ];
+	new fdata[ 26 ];
+	format( fkey,53, "%s-codmwsetting",steamid );
+	format( fdata, 25, "%i#%i#%i#%i", nSETTING[ KILLZOOM ][ id ], nSETTING[ MESSAGE ][ id ], nSETTING[ EFFECT ][ id ], nSETTING[ SKINS ][ id ] );
+	fvault_get_data( fDataBase2, fkey, fdata, 255 );
+	
+	replace_all( fdata, 25, "#", " ");
+	
+	new fKillZoom[32], fMessage[32], fEffect[32], fSkins[32];
+	
+	parse( fdata, fKillZoom, 31, fMessage, 31, fEffect, 31, fSkins, 31 );
+	
+	nSETTING[ KILLZOOM ][ id ] = str_to_num( fKillZoom );
+	nSETTING[ MESSAGE ][ id ] = str_to_num( fMessage );
+	nSETTING[ EFFECT ][ id ] = str_to_num( fEffect );
+	nSETTING[ SKINS ][ id ] = str_to_num( fSkins );
 } 
 
 public Cmd_DropItem(id)
@@ -4787,7 +4732,7 @@ public Func_ChangerModel(id, reset)
 
 public Pomoc(id)
 {
-	if ( !nShowHelpMsg[id] )
+	if ( !nSETTING[ MESSAGE ][id] )
 		return PLUGIN_HANDLED;
 		
 	new msg = random_num(1, 10);
@@ -5244,7 +5189,7 @@ public hook_say(id)
 	if (admin)
 	{
 		get_user_team (id, color, 9);
-		format (strName, 191, "%s^x04[%s^x03(%i)^x04] ^x03%s", alive, ( gPlayerLevel[id] != get_pcvar_num( mCVARS[gMAXLEVEL] ) ) ? SzLevelName[gPlayerLevel[id]] : MAX_PLAYER_LEVEL2, gPlayerLevel[id], name);
+		format (strName, 191, "%s^x01[^x04%s^x01] ^x03%s", alive, ( gPlayerLevel[id] != get_pcvar_num( mCVARS[gMAXLEVEL] ) ) ? SzLevelName[gPlayerLevel[id]] : MAX_PLAYER_LEVEL2, name);
 		format (strText, 191, "%s", message);
 	}
 	
@@ -5252,7 +5197,7 @@ public hook_say(id)
 	{
 		get_user_team (id, color, 9);
 		
-		format (strName, 191, "%s^x04[%i] ^x03%s", alive, ( gPlayerLevel[id] != get_pcvar_num( mCVARS[gMAXLEVEL] ) ) ? gPlayerLevel[id] : get_pcvar_num( mCVARS[gMAXLEVEL] ), name);
+		format (strName, 191, "%s^x01[^x04%i^x01] ^x03%s", alive, gPlayerLevel[id], name);
 		
 		format (strText, 191, "%s", message);
 	}
@@ -5313,7 +5258,7 @@ public hook_teamsay(id)
 	if (admin)
 	{
 		get_user_team (id, color, 9);
-		format (strName, 191, "%s(^x03%s^x01)^x04[%s^x03(%i)^x04] ^x03%s", alive, playerTeamName, ( gPlayerLevel[id] != get_pcvar_num( mCVARS[gMAXLEVEL] ) ) ? SzLevelName[gPlayerLevel[id]] : MAX_PLAYER_LEVEL2, gPlayerLevel[id], name);
+		format (strName, 191, "%s(^x03%s^x01)^x01[^x04%s^x01] ^x03%s", alive, playerTeamName, ( gPlayerLevel[id] != get_pcvar_num( mCVARS[gMAXLEVEL] ) ) ? SzLevelName[gPlayerLevel[id]] : MAX_PLAYER_LEVEL2, name);
 		format (strText, 191, "%s", message);
 	}
 	
@@ -5321,7 +5266,7 @@ public hook_teamsay(id)
 	{
 		get_user_team (id, color, 9);
 		
-		format (strName, 191, "%s(^x03%s^x01)^x04[%i] ^x03%s", alive, playerTeamName, ( gPlayerLevel[id] != get_pcvar_num( mCVARS[gMAXLEVEL] ) ) ? gPlayerLevel[id] : get_pcvar_num( mCVARS[gMAXLEVEL] ), name);
+		format (strName, 191, "%s(^x03%s^x01)^x01[^x04%i^x01] ^x03%s", alive, playerTeamName, gPlayerLevel[id], name);
 		
 		format (strText, 191, "%s", message);
 	}
@@ -5401,147 +5346,6 @@ public SelectSounds(id)
 	}
 }
 
-public set_fog2(id) 
-{
-	if ( get_pcvar_num(mCVARS[gPOCASIE]) ) 
-	{
-		new number[3],tempdens[4];
-		if(g_density[0] == 0) 
-		{
-		/*	if(get_pcvar_num(mCVARS[gRANDOMHMLA])) 
-			{
-				new rand = random_num(0, 9);
-				rand = get_pcvar_num(mCVARS[gHUSTOTAHMLY]);
-				switch(rand) 
-				{
-					case 0:
-					{
-						ColorMsg(id, "^1[^4%s^1]^1 Nulova hustota hmly.", PLUGIN);
-					}
-					case 1:
-					{
-						tempdens[0]=3;
-						tempdens[1]=58;
-						tempdens[2]=111;
-						tempdens[3]=18;
-						ColorMsg(id, "^1[^4%s^1]^1 Hustota hmly na urovni^4 1 Levelu^1!!!", PLUGIN);
-					}
-					case 2:
-					{
-						tempdens[0]=125;
-						tempdens[1]=58;
-						tempdens[2]=111;
-						tempdens[3]=18;
-						ColorMsg(id, "^1[^4%s^1]^1 Hustota hmly na urovni^4 2 Levelu^1!!!", PLUGIN);
-					}
-					case 3:
-					{
-						tempdens[0]=27;
-						tempdens[1]=59;
-						tempdens[2]=66;
-						tempdens[3]=96;
-						ColorMsg(id, "^1[^4%s^1]^1 Hustota hmly na urovni^4 3 Levelu^1!!!", PLUGIN);
-					}
-					case 4:
-					{
-						tempdens[0]=60;
-						tempdens[1]=59;
-						tempdens[2]=90;
-						tempdens[3]=101;
-						ColorMsg(id, "^1[^4%s^1]^1 Hustota hmly na urovni^4 4 Levelu^1!!!", PLUGIN);
-					}
-					case 5:
-					{
-						tempdens[0]=68;
-						tempdens[1]=59;
-						tempdens[2]=90;
-						tempdens[3]=101;
-						ColorMsg(id, "^1[^4%s^1]^1 Hustota hmly na urovni^4 5 Levelu^1!!!", PLUGIN);
-					}
-					case 6:
-					{
-						tempdens[0]=95;
-						tempdens[1]=59;
-						tempdens[2]=10;
-						tempdens[3]=41;
-						ColorMsg(id, "^1[^4%s^1]^1 Hustota hmly na urovni^4 6 Levelu^1!!!", PLUGIN);
-					}
-				}
-			} else {*/
-				switch(get_pcvar_num(mCVARS[gHUSTOTAHMLY])) 
-				{
-					case 1:
-					{
-						tempdens[0]=3;
-						tempdens[1]=58;
-						tempdens[2]=111;
-						tempdens[3]=18;
-					}
-					case 2:
-					{
-						tempdens[0]=125;
-						tempdens[1]=58;
-						tempdens[2]=111;
-						tempdens[3]=18;
-					}
-					case 3:
-					{
-						tempdens[0]=27;
-						tempdens[1]=59;
-						tempdens[2]=66;
-						tempdens[3]=96;
-					}
-					case 4:
-					{
-						tempdens[0]=60;
-						tempdens[1]=59;
-						tempdens[2]=90;
-						tempdens[3]=101;
-					}
-					case 5:
-					{
-						tempdens[0]=68;
-						tempdens[1]=59;
-						tempdens[2]=90;
-						tempdens[3]=101;
-					}
-					case 6:
-					{
-						tempdens[0]=95;
-						tempdens[1]=59;
-						tempdens[2]=10;
-						tempdens[3]=41;
-					}
-				}
-			/*}*/
-		}
-		else {
-			tempdens[0] = g_density[0];
-			tempdens[1] = g_density[1];
-			tempdens[2] = g_density[2];
-			tempdens[3] = g_density[3];
-		}
-		if((r > 0 || g > 0 || b > 0)) {number[0] = r;number[1] = g;number[2] = b;} 
-		else {
-			new string[16],string2[3][4],i;
-			get_pcvar_string(mCVARS[gFARBAHMLY],string,15);
-			parse(string,string2[0],3,string2[1],3,string2[2],3);
-			for(i=0;i < 3;i++) number[i] = str_to_num(string2[i]);
-			if(number[0] < 0 || number[0] > 255 || number[1] < 0 || number[1] > 255 || number[2] < 0 || number[2] > 255)
-				log_amx("******RGB farby mozu mat hodnotu od 0 do 255******");
-		}
-		message_begin(MSG_ONE,get_user_msgid("Fog"),{0,0,0},id);
-		write_byte(number[0]);  // R
-		write_byte(number[1]);  // G
-		write_byte(number[2]);  // B
-		write_byte(tempdens[2]); // SD
-		write_byte(tempdens[3]);  // ED
-		write_byte(tempdens[0]);   // D1
-		write_byte(tempdens[1]);  // D2
-		message_end();
-	}
-}
-
 stock fm_set_user_death(const id, const i_NewDeaths)
 {
 	set_pdata_int(id, 444, i_NewDeaths);
@@ -5586,3 +5390,4 @@ stock ColorMsg( const id , const input[] , any:... )
 		}
 	}
 }
+
