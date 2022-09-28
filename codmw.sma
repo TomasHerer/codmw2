@@ -8,7 +8,6 @@
 #include < fun >
 #include < hamsandwich >
 #include < fvault >
-#include < autoexecconfig >
 
 #define PLUGIN 				"Call Of Duty"
 #define VERSION 			"5.0"
@@ -34,7 +33,6 @@
 #define SMOKE_GROUND_OFFSET		6
 #define MIN_ONLINE_PLAYERS		2
 
-#define MAX_PLAYER_LEVEL2		"Global Veteran"
 #define MAX_DISTANCE_AIDKIT		300
 #define MAX_HUDMESSAGES			7
 
@@ -44,12 +42,11 @@
 #define VIP_ACCESS			ADMIN_LEVEL_H
 
 #define MOD_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<7)|(1<<9)
-#define UPG_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<7)|(1<<9)
+#define UPG_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<9)
 #define SHOP_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<7)|(1<<8)|(1<<9)
 #define SHOP2_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<7)|(1<<8)|(1<<9)
 #define BANK_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<9)
 #define BANK2_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<9)
-#define SETT_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<9)
 #define HELP_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<9)
 
 #define OFFSET_FLASH_AMMO 		387
@@ -61,7 +58,7 @@
 new const item_class_name[] = "dm_item";
 
 new const fDataBase[] = "cod_databaza";
-new const fDataBase2[] = "codset_databaza";
+//new const fDataBase2[] = "codset_databaza";
 	
 new b_peniaze[33] = 0;
 
@@ -73,7 +70,12 @@ enum _:BANKVALUE
 
 new fCVARS[BANKVALUE];
 
-new g_sync_hudmsg[MAX_HUDMESSAGES];
+new g_sync_hudmsg1,
+	g_sync_hudmsg2,
+	g_sync_hudmsg3,
+	g_sync_hudmsg4,
+	g_sync_hudmsg5,
+	g_sync_hudmsg6;
 new g_msg_screenfade;
 new g_iScoreInfo;
 
@@ -82,25 +84,16 @@ new sprite_blast;
 
 new g_planter;
 new g_defuser;
-new g_msg_hideweapon;
 
-new g_msg_crosshair;
 new g_maxplayers;
 
 enum _:BONUSVALUE
 {
-	gDEFUSE, gKILL, gPLANT, gALIVE, gKILLVIP, gHEALTHVIP,
+	gDEFUSE, gKILL, gPLANT, gMONEYVIP, gALIVE, gKILLVIP, gHEALTHVIP,
 	gPLANTVIP, gDEFUSEVIP, gADMIN
 };
 
 new bCVARS[BONUSVALUE];
-
-enum _:BONUSVALUEMONEY
-{
-	gMONEY, gMONEYVIP
-};
-
-new bCVARSMONEY[BONUSVALUEMONEY];
 
 enum _:MODVALUE
 {
@@ -268,7 +261,7 @@ new const SzLevelName[][] =
 	"Elite Prime", "Global Elite", "Master", "Master Prime", "Global Master",	// 81-85
 	"Expert", "Expert Prime", "Global Expert", "Pro", "Pro Prime",			// 86-90
 	"Global Pro", "Legend", "Legend Prime", "Global Legend", "Creed",		// 91-95
-	"Creed Prime", "Global Creed", "Veteran", "Veteran Prime"			// 96-99
+	"Creed Prime", "Global Creed", "Veteran", "Veteran Prime", "Global Veteran"			// 96-99
 };
 
 new bool: gPlayerReset[33];
@@ -458,13 +451,6 @@ new CSW_MAXAMMO[33]= { -2, 200, 0, 200, 1, 200, 1, 100, 200, 1, 200, 200,
 
 new bool: bItemScopeAlert[33];
 
-enum _:VALUE
-{
-	KILLZOOM, MESSAGE, EFFECT, FASTMENU, SKINS
-};
-
-new nSETTING[VALUE][33];
-
 new gItemBullets_Num[33];
 
 new model_medkit[] = "models/codmw/w_medkitnew.mdl";
@@ -486,145 +472,8 @@ new const Float:size[ ][ 3 ] =
 	{0.0, 0.0, 5.0}, {0.0, 0.0, -5.0}, {0.0, 5.0, 0.0}, {0.0, -5.0, 0.0}, {5.0, 0.0, 0.0}, {-5.0, 0.0, 0.0}, {-5.0, 5.0, 5.0}, {5.0, 5.0, 5.0}, {5.0, -5.0, 5.0}, {5.0, 5.0, -5.0}, {-5.0, -5.0, 5.0}, {5.0, -5.0, -5.0}, {-5.0, 5.0, -5.0}, {-5.0, -5.0, -5.0}
 };
 
-new const v_weaponmodels[][] = 
-{
-	"models/codmw/v_ak47.mdl",		// 00
-	"models/codmw/v_aug.mdl",		// 01
-	"models/codmw/v_awp.mdl", 		// 02
-	"models/codmw/v_c4.mdl",		// 03
-	"models/codmw/v_deagle.mdl",		// 04
-	"models/codmw/v_elite.mdl",		// 05
-	"models/codmw/v_famas.mdl",		// 06
-	"models/codmw/v_fiveseven.mdl",		// 07
-	"models/codmw/v_flashbang.mdl",		// 08
-	"models/codmw/v_g3sg1.mdl",		// 09
-	"models/codmw/v_galil.mdl",		// 10
-	"models/codmw/v_glock18.mdl",		// 11
-	"models/codmw/v_hegranade.mdl",		// 12
-	"models/codmw/v_knife.mdl",		// 13
-	"models/codmw/v_m3.mdl",		// 14
-	"models/codmw/v_m4a1.mdl",		// 15
-	"models/codmw/v_m249.mdl",		// 16
-	"models/codmw/v_mac10.mdl",		// 17
-	"models/codmw/v_mp5.mdl",		// 18
-	"models/codmw/v_p90.mdl",		// 19
-	"models/codmw/v_p228.mdl", 		// 20
-	"models/codmw/v_scout.mdl",		// 21
-	"models/codmw/v_sg550.mdl",		// 22
-	"models/codmw/v_sg552.mdl",		// 23
-	"models/codmw/v_smokegranade.mdl",	// 24
-	"models/codmw/v_tmp.mdl",		// 25
-	"models/codmw/v_ump45.mdl",		// 26
-	"models/codmw/v_usp.mdl",		// 27
-	"models/codmw/v_xm1014.mdl"		// 28
-};
-
-new const p_weaponmodels[][] = {
-	"models/codmw/p_ak47.mdl",		// 00
-	"models/codmw/p_aug.mdl",		// 01
-	"models/codmw/p_awp.mdl",		// 02
-	"models/codmw/p_c4.mdl",		// 03
-	"models/codmw/p_deagle.mdl",		// 04
-	"models/codmw/p_elite.mdl",		// 05
-	"models/codmw/p_famas.mdl",		// 06
-	"models/codmw/p_fiveseven.mdl",		// 07
-	"models/codmw/p_flashbang.mdl",		// 08
-	"models/codmw/p_g3sg1.mdl",		// 09
-	"models/codmw/p_galil.mdl",		// 10
-	"models/codmw/p_glock18.mdl",		// 11
-	"models/codmw/p_he.mdl",		// 12
-	"models/codmw/p_knife.mdl",		// 13
-	"models/codmw/p_m3.mdl",		// 14
-	"models/codmw/p_m4a1.mdl",		// 15
-	"models/codmw/p_m249.mdl",		// 16
-	"models/codmw/p_mac10.mdl",		// 17
-	"models/codmw/p_mp5.mdl",		// 18
-	"models/codmw/p_p90.mdl",		// 19
-	"models/codmw/p_p228.mdl",		// 20
-	"models/codmw/p_scout.mdl",		// 21
-	"models/codmw/p_sg550.mdl",		// 22
-	"models/codmw/p_sg552.mdl",		// 23
-	"models/codmw/p_sg.mdl",		// 24
-	"models/codmw/p_tmp.mdl",		// 25
-	"models/codmw/p_ump45.mdl",		// 26
-	"models/codmw/p_usp.mdl",		// 27
-	"models/codmw/p_xm1014.mdl"		// 28
-};
-
-new const old_w_models[][]  =
-{
-	"models/w_ak47.mdl",			// 00
-	"models/w_aug.mdl",			// 01
-	"models/w_awp.mdl",			// 02
-	"models/w_c4.mdl",			// 03
-	"models/w_deagle.mdl",			// 04
-	"models/w_elite.mdl",			// 05
-	"models/w_famas.mdl",			// 06
-	"models/w_fiveseven.mdl",		// 07
-	"models/w_flashbang.mdl",		// 08
-	"models/w_g3sg1.mdl",			// 09
-	"models/w_galil.mdl",			// 10
-	"models/w_glock18.mdl",			// 11
-	"models/w_hegrenade.mdl",		// 12
-	"models/w_knife.mdl",			// 13
-	"models/w_m3.mdl",			// 14
-	"models/w_m4a1.mdl",			// 15
-	"models/w_m249.mdl",			// 16
-	"models/w_mac10.mdl",			// 17
-	"models/w_mp5.mdl",			// 18
-	"models/w_p90.mdl",			// 19
-	"models/w_p228.mdl",			// 20
-	"models/w_scout.mdl",			// 21
-	"models/w_sg550.mdl", 			// 22
-	"models/w_sg552.mdl",			// 23
-	"models/w_smokegrenade.mdl",		// 24
-	"models/w_tmp.mdl",			// 25
-	"models/w_ump45.mdl",			// 26
-	"models/w_usp.mdl",			// 27
-	"models/w_xm1014.mdl",			// 28
-	"models/w_backpack.mdl"			// 29
-};
-new const new_w_models[][]  = 
-{
-	"models/codmw/w_ak47.mdl",		// 00
-	"models/codmw/w_aug.mdl",		// 01
-	"models/codmw/w_awp.mdl",		// 02
-	"models/codmw/w_c4.mdl",		// 03
-	"models/codmw/w_deagle.mdl",		// 04
-	"models/codmw/w_elite.mdl",		// 05
-	"models/codmw/w_famas.mdl",		// 06
-	"models/codmw/w_fiveseven.mdl",		// 07
-	"models/codmw/w_flashbang.mdl",		// 08
-	"models/codmw/w_g3sg1.mdl",		// 09
-	"models/codmw/w_galil.mdl",		// 10
-	"models/codmw/w_glock18.mdl",		// 11
-	"models/codmw/w_he.mdl",		// 12
-	"models/codmw/w_knife.mdl",		// 13
-	"models/codmw/w_m3.mdl",		// 14
-	"models/codmw/w_m4a1.mdl",		// 15
-	"models/codmw/w_m249.mdl",		// 16
-	"models/codmw/w_mac10.mdl",		// 17
-	"models/codmw/w_mp5.mdl",		// 18
-	"models/codmw/w_p90.mdl",		// 19
-	"models/codmw/w_p228.mdl",		// 20
-	"models/codmw/w_scout.mdl",		// 21
-	"models/codmw/w_sg550.mdl",		// 22
-	"models/codmw/w_sg552.mdl",		// 23
-	"models/codmw/w_sg.mdl",		// 24
-	"models/codmw/w_tmp.mdl",		// 25
-	"models/codmw/w_ump45.mdl",		// 26
-	"models/codmw/w_usp.mdl",		// 27
-	"models/codmw/w_xm1014.mdl",		// 28
-	"models/codmw/w_backpack.mdl"		// 29
-};
-
 new presentmodel[] = "models/codmw/presents.mdl";
-new v_knifemodelT[] = "models/codmw/v_knife_r.mdl";
 new parachutemodel[] = "models/codmw/parachute.mdl";
-
-//new const s_startsound[][] = { "codmw/start1.mp3", "codmw/start2.mp3"  };
-
-new const s_startsound2[][] = { "codmw/cod_bgsound.mp3", "codmw/cod_bgsound2.mp3", "codmw/cod_bgsound3.mp3", "codmw/cod_bgsound4.mp3"  };
 
 new const s_pdsound[][] = { "codmw/bombplant.wav", "codmw/bombdefus.wav"  };
 
@@ -636,10 +485,6 @@ new s_bonussound[]  = "codmw/bonus.wav";
 
 new s_telesound[] = "codmw/teleportnade.wav";
 
-new const s_thundersound[][] = { "codmw/thunder1.wav", "codmw/thunder2.wav" };
-
-new const s_radiosound[][] = { "codmw/radio01.wav", "codmw/radio02.wav", "codmw/radio03.wav", "codmw/radio04.wav",
-	"codmw/radio05.wav", "codmw/radio06.wav", "codmw/radio07.wav", "codmw/radio08.wav", "codmw/radio09.wav", "codmw/radio10.wav" };
 
 new message[192];
 new strName[191];
@@ -650,28 +495,14 @@ public plugin_precache( )
 {
 	for (new i = 0; i < sizeof(s_levelsound); i++)
 		precache_sound(s_levelsound[i]);
-		
-/*	for (new i = 0; i < sizeof(s_startsound); i++)
-		precache_sound(s_startsound[i]);*/
-		
-	for (new i = 0; i < sizeof(s_startsound2); i++)
-		precache_sound(s_startsound2[i]);
-	
 	
 	for (new i = 0; i < sizeof(s_pdsound); i++)
 		precache_sound(s_pdsound[i]);
 		
 	for (new i = 0; i < sizeof(s_selectsound); i++)
 		precache_sound(s_selectsound[i]);
-		
-	for (new i = 0; i < sizeof(s_thundersound); i++)
-		precache_sound(s_thundersound[i]);
-		
-	for (new i = 0; i < sizeof(s_radiosound); i++)
-		precache_sound(s_radiosound[i]);
 	
 	precache_sound(s_bonussound);
-	precache_sound("ambience/rain.wav");
 	precache_sound(s_telesound);
 	
 	precache_model(model_medkit);
@@ -689,19 +520,8 @@ public plugin_precache( )
 	
 	formatex(VipModel, charsmax(VipModel), "models/player/%s/%s.mdl", m_vipmodel_ct, m_vipmodel_ct);
 	precache_model(VipModel);
-	
-	for (new i = 0; i < sizeof(v_weaponmodels); i++)
-		precache_model(v_weaponmodels[i]);
-
-	for (new i = 0; i < sizeof(p_weaponmodels); i++)
-		precache_model(p_weaponmodels[i]);
-	
-	for (new i = 0; i < sizeof(new_w_models); i++)
-		precache_model(new_w_models[i]);
 		
 	precache_model(presentmodel);
-		
-	precache_model(v_knifemodelT);
 	
 	sprite_white	= 	precache_model("sprites/codmw/white.spr") ;
 	sprite_blast	= 	precache_model("sprites/codmw/dexplo.spr");
@@ -713,19 +533,18 @@ public plugin_init()
 	
 	register_think( "FirstAidKit", "Think_FirstAidKit" );
 	
-	RegisterHam( Ham_TakeDamage, "player", "Ham_PlayerDamage" );
-	RegisterHam( Ham_Spawn, "player", "Ham_PlayerSpawn", 1 );
-	RegisterHam( Ham_Killed, "player", "Ham_PlayerKilled" );
-	RegisterHam( Ham_Player_Jump,"player","Ham_PlayerJump" );
-	RegisterHam( Ham_TraceAttack, "player", "Ham_PlayerTraceAttack" );
-	
 	register_forward( FM_CmdStart, "Fwd_CmdStart" );
-	register_forward( FM_SetModel,"W_Model_Hook",1 );
 	register_forward( FM_EmitSound, "Fwd_EmitSound" );
 	register_forward( FM_PlayerPreThink, "Fwd_PlayerPreThink" );
 	register_forward( FM_PlaybackEvent, "forward_PlaybackEvent" );
 	register_forward( FM_Touch, "fwd_Touch" );
 	register_forward( FM_GetGameDescription, "ForwardGameDescription" ); 
+	
+	RegisterHam( Ham_TakeDamage, "player", "Ham_PlayerDamage" );
+	RegisterHam( Ham_Spawn, "player", "Ham_PlayerSpawn", 1 );
+	RegisterHam( Ham_Killed, "player", "Ham_PlayerKilled" );
+	RegisterHam( Ham_Player_Jump,"player","Ham_PlayerJump" );
+	RegisterHam( Ham_TraceAttack, "player", "Ham_PlayerTraceAttack" );
 	
 	register_logevent( "LogEvent_RoundStart", 2, "1=Round_Start" ); 
 	register_logevent( "LogEvent_PlantBomb", 3, "2=Planted_The_Bomb" );
@@ -778,73 +597,73 @@ public plugin_init()
 
 	// SHOP ITEM +HP
 	sCVARS[COST_HEALTH] = register_cvar( "CODSHOP_COST_HEALTH", 		"2000" );
-	sCVARS[LEVEL_HEALTH] = register_cvar( "CODSHOP_LEVEL_HEALTH", 		"15" );
+	sCVARS[LEVEL_HEALTH] = register_cvar( "CODSHOP_LEVEL_HEALTH", 		"5" );
 	sCVARS[GET_HEALTH] = register_cvar( "CODSHOP_GET_HEALTH", 		"15" );
 	sCVARS[MAX_HEALTH] = register_cvar( "CODSHOP_MAX_HEALTH", 		"3" );
 	
 	// SHOP ITEM +HP2
 	sCVARS[COST_HEALTH2] = register_cvar( "CODSHOP_COST_HEALTH2", 		"4000" );
-	sCVARS[LEVEL_HEALTH2] = register_cvar( "CODSHOP_LEVEL_HEALTH2", 		"20" );
+	sCVARS[LEVEL_HEALTH2] = register_cvar( "CODSHOP_LEVEL_HEALTH2", 		"10" );
 	sCVARS[GET_HEALTH2] = register_cvar( "CODSHOP_GET_HEALTH2", 		"30" );
 	sCVARS[MAX_HEALTH2] = register_cvar( "CODSHOP_MAX_HEALTH2", 		"3" );
 	
 	// SHOP ITEM FULL EQUIP
 	sCVARS[COST_FULLEQUIP] = register_cvar( "CODSHOP_COST_FULLEQUIP", 	"1600" );
-	sCVARS[LEVEL_FULLEQUIP] = register_cvar( "CODSHOP_LEVEL_FULLEQUIP", 	"30" );
+	sCVARS[LEVEL_FULLEQUIP] = register_cvar( "CODSHOP_LEVEL_FULLEQUIP", 	"5" );
 	sCVARS[MAX_FULLEQUIP] = register_cvar( "CODSHOP_MAX_FULLEQUIP", 		"2" );
 	
 	// SHOP ITEM RANDOM ITEM
 	sCVARS[COST_RANDOMITEM] = register_cvar( "CODSHOP_COST_RANDOMITEM", 	"3000" );
-	sCVARS[LEVEL_RANDOMITEM] = register_cvar( "CODSHOP_LEVEL_RANDOMITEM", 	"15" );
+	sCVARS[LEVEL_RANDOMITEM] = register_cvar( "CODSHOP_LEVEL_RANDOMITEM", 	"8" );
 	sCVARS[MAX_RANDOMITEM] = register_cvar( "CODSHOP_MAX_RANDOMITEM", 	"3" );
 	
 	// SHOP ITEM TOMBOLA
 	sCVARS[COST_TOMBOLA] = register_cvar( "CODSHOP_COST_TOMBOLA", 		"2000" );
-	sCVARS[LEVEL_TOMBOLA] = register_cvar( "CODSHOP_LEVEL_TOMBOLA", 		"12" );
+	sCVARS[LEVEL_TOMBOLA] = register_cvar( "CODSHOP_LEVEL_TOMBOLA", 		"3" );
 	sCVARS[MAX_TOMBOLA] = register_cvar( "CODSHOP_MAX_TOMBOLA", 		"4" );
 	
 	// SHOP ITEM EXTRA TOMBOLA
 	sCVARS[COST_EXTRATOMBOLA] = register_cvar( "CODSHOP_COST_EXTRATOMBOLA", 	"6000" );
-	sCVARS[LEVEL_EXTRATOMBOLA] = register_cvar( "CODSHOP_LEVEL_EXTRATOMBOLA", "16" );
+	sCVARS[LEVEL_EXTRATOMBOLA] = register_cvar( "CODSHOP_LEVEL_EXTRATOMBOLA", "6" );
 	sCVARS[MAX_EXTRATOMBOLA] = register_cvar( "CODSHOP_MAX_EXTRATOMBOLA", 	"2" );
 	
 	// SHOP ITEM DEFUSKIT
 	sCVARS[COST_DEFUSKIT] = register_cvar( "CODSHOP_COST_DEFUSKIT",		 "1000" );
-	sCVARS[LEVEL_DEFUSKIT] = register_cvar( "CODSHOP_LEVEL_DEFUSKIT", 	"10" );
+	sCVARS[LEVEL_DEFUSKIT] = register_cvar( "CODSHOP_LEVEL_DEFUSKIT", 	"2" );
 	sCVARS[MAX_DEFUSKIT] = register_cvar( "CODSHOP_MAX_DEFUSKIT", 		"1" );
 	
 	// SHOP ITEM PARACHUTE
 	sCVARS[COST_PARACHUTE] = register_cvar( "CODSHOP_COST_PARACHUTE", 	"5000" );
-	sCVARS[LEVEL_PARACHUTE] = register_cvar( "CODSHOP_LEVEL_PARACHUTE", 	"50" );
+	sCVARS[LEVEL_PARACHUTE] = register_cvar( "CODSHOP_LEVEL_PARACHUTE", 	"5" );
 	sCVARS[PARACHUTE_SPEED] = register_cvar( "CODSHOP_PARACHUTE_SPEED", 	"75" );
 	sCVARS[PARACHUTE_DETACH] = register_cvar( "CODSHOP_PARACHUTE_DETACH", 	"1" );
 	
 	// SHOP ITEM TELEPORT NADE
 	sCVARS[COST_TELEPORTNADE] = register_cvar( "CODSHOP_COST_TELEPORTNADE", 	"7000" );
-	sCVARS[LEVEL_TELEPORTNADE] = register_cvar( "CODSHOP_LEVEL_TELEPORTNADE", "70" );
+	sCVARS[LEVEL_TELEPORTNADE] = register_cvar( "CODSHOP_LEVEL_TELEPORTNADE", "10" );
 	sCVARS[MAX_TELEPORTNADE] = register_cvar( "CODSHOP_MAX_TELEPORTNADE", 	"1" );
 	
 	// SHOP ITEM GOD MODE
 	sCVARS[COST_GODMODE] = register_cvar( "CODSHOP_COST_GODMODE", 		"6000" );
-	sCVARS[LEVEL_GODMODE] = register_cvar( "CODSHOP_LEVEL_GODMODE", 		"80" );
+	sCVARS[LEVEL_GODMODE] = register_cvar( "CODSHOP_LEVEL_GODMODE", 		"20" );
 	sCVARS[GET_TIMEGODMODE] = register_cvar( "CODSHOP_GET_TIMEGODMODE", 	"5.0" );
 	sCVARS[MAX_GODMODE] = register_cvar( "CODSHOP_MAX_GODMODE", 		"2" );
 	
 	// SHOP ITEM XP PACK
 	sCVARS[COST_XPPACK] = register_cvar( "CODSHOP_COST_XPPACK", 		"3000" );
-	sCVARS[LEVEL_XPPACK] = register_cvar( "CODSHOP_LEVEL_XPPACK", 		"30" );
+	sCVARS[LEVEL_XPPACK] = register_cvar( "CODSHOP_LEVEL_XPPACK", 		"5" );
 	sCVARS[GET_XPPACK] = register_cvar( "CODSHOP_GET_XPPACK", 		"500" );
 	sCVARS[MAX_XPPACK] = register_cvar( "CODSHOP_MAX_XPPACK", 		"3" );
 	
 	// SHOP ITEM XP PACK2
 	sCVARS[COST_XPPACK2] = register_cvar( "CODSHOP_COST_XPPACK2", 		"6000" );
-	sCVARS[LEVEL_XPPACK2] = register_cvar( "CODSHOP_LEVEL_XPPACK2", 		"40" );
+	sCVARS[LEVEL_XPPACK2] = register_cvar( "CODSHOP_LEVEL_XPPACK2", 		"10" );
 	sCVARS[GET_XPPACK2] = register_cvar( "CODSHOP_GET_XPPACK2", 		"1000" );
 	sCVARS[MAX_XPPACK2] = register_cvar( "CODSHOP_MAX_XPPACK2", 		"2" );
 	
 	// SHOP ITEM XP PACK3
 	sCVARS[COST_XPPACK3] = register_cvar( "CODSHOP_COST_XPPACK3", 		"10000" );
-	sCVARS[LEVEL_XPPACK3] = register_cvar( "CODSHOP_LEVEL_XPPACK3", 		"50" );
+	sCVARS[LEVEL_XPPACK3] = register_cvar( "CODSHOP_LEVEL_XPPACK3", 		"20" );
 	sCVARS[GET_XPPACK3] = register_cvar( "CODSHOP_GET_XPPACK3", 		"1500" );
 	sCVARS[MAX_XPPACK3] = register_cvar( "CODSHOP_MAX_XPPACK3", 		"2" );
 	
@@ -861,7 +680,7 @@ public plugin_init()
 	
 	// VIP PLAYER BONUS
 	bCVARS[gKILLVIP] = register_cvar( "CODMOD_VIPBONUS_KILL", 		"60" ); // EXP
-	bCVARSMONEY[gMONEYVIP] = register_cvar( "CODMOD_VIPBONUS_KILLMONEY", 	"500" ); // +MONEY
+	bCVARS[gMONEYVIP] = register_cvar( "CODMOD_VIPBONUS_KILLMONEY", 		"500" ); // +MONEY
 	bCVARS[gHEALTHVIP] = register_cvar( "CODMOD_VIPBONUS_HEALTH", 		"10" );
 	bCVARS[gPLANTVIP] = register_cvar( "CODMOD_VIPBONUS_PLANT", 		"10" );
 	bCVARS[gDEFUSEVIP] = register_cvar( "CODMOD_VIPBONUS_DEFUS", 		"10" );
@@ -907,18 +726,9 @@ public plugin_init()
 	register_clcmd( "say_team /rs", 	"Cmd_ResetPlayerScore" );
 	register_clcmd( "say /resetscore", 	"Cmd_ResetPlayerScore" );
 	register_clcmd( "say_team /resetscore", "Cmd_ResetPlayerScore" );
-	
-	register_clcmd( "say /nastavenia", 	"Cmd_HerneNastavenia" );
-	register_clcmd( "say_team /nastavenia",	"Cmd_HerneNastavenia" );
-	register_clcmd( "say /setting", 	"Cmd_HerneNastavenia" );
-	register_clcmd( "say_team /setting", 	"Cmd_HerneNastavenia" );
-	register_clcmd( "buyequip", 		"Cmd_HerneNastavenia" );
-	
 
 	register_clcmd( "radio3",		"Func_UseItem" );
 	register_clcmd( "coduseitem",		"Func_UseItem" );
-	
-	register_impulse(100, 			"Func_ChangeModels");
 
 	register_clcmd( "say /banka",		"Cmd_BankMenu" );
 	register_clcmd( "say_team /banka",	"Cmd_BankMenu" );
@@ -935,7 +745,6 @@ public plugin_init()
 	register_menucmd( register_menuid("Shop2MenuSelect"), SHOP2_MENU, "Cmd_Shop2Menu_Handler" );
 	register_menucmd( register_menuid("BankMenuSelect"), BANK_MENU, "Cmd_BankMenu_Handler" );
 	register_menucmd( register_menuid("BankChangeMenuSelect"), BANK2_MENU, "Cmd_BankChangeMenu_Handler" );
-	register_menucmd( register_menuid("SettingMenuSelect"), SETT_MENU, "Cmd_HerneNastavenia_Handler" );
 	register_menucmd( register_menuid("HelpMenuSelect"), HELP_MENU, "Cmd_HelpMenu_Handler" );
 	
 	for( new i = 0;i < sizeof( SzBlockCommand ); i++ )
@@ -947,6 +756,7 @@ public plugin_init()
 	register_concmd( "cod_remxp", "Cmd_AdminRemovePlayerExp", get_pcvar_num( fCVARS[ADMIN] ), "<nick> <number of remove exp>" );
 
 	register_concmd( "codbank_addmoney", "admin_add_money", get_pcvar_num( fCVARS[ADMIN] ), "<nick> <money>" );
+
 	register_concmd( "codbank_remmoney", "admin_remove_money", get_pcvar_num( fCVARS[ADMIN] ), "<nick> <money>" );
 		
 	register_message (get_user_msgid ("SayText"), "avoid_duplicated");
@@ -955,28 +765,24 @@ public plugin_init()
 	register_clcmd ("say_team", "hook_teamsay");
 	
 	g_msg_screenfade	= get_user_msgid( "ScreenFade" );	
-	g_msg_hideweapon 	= get_user_msgid( "HideWeapon" );
-	g_msg_crosshair		= get_user_msgid( "Crosshair" );
 	g_iScoreInfo   		= get_user_msgid("ScoreInfo");
 	
 	g_maxplayers 		= get_maxplayers( );
 	
-	for ( new i; i < sizeof( g_sync_hudmsg ); i++ )
-		g_sync_hudmsg[i] = CreateHudSyncObj( );
-	
-	set_task( 60.0, "Pomoc" );
-	set_task( 20.0, "Func_BGRadio" );
+	g_sync_hudmsg1 = CreateHudSyncObj( );
+	g_sync_hudmsg2 = CreateHudSyncObj( );
+	g_sync_hudmsg3 = CreateHudSyncObj( );
+	g_sync_hudmsg4 = CreateHudSyncObj( );
+	g_sync_hudmsg5 = CreateHudSyncObj( );
+	g_sync_hudmsg6 = CreateHudSyncObj( );
 }
 
-
 public plugin_cfg( ) 
-{    
-/*	new cfgdir[32];
+{
+	new cfgdir[32];
 	get_configsdir(cfgdir, charsmax(cfgdir));
 
-	server_cmd("exec %s/callofduty.cfg", cfgdir);*/
-	
-	auto_exec_config( "codmw" );
+	server_cmd("exec %s/codmw.cfg", cfgdir);
 
 	server_cmd("sv_maxspeed %i", mCVARS[gMAXSPEED]);
 }
@@ -1010,15 +816,9 @@ public client_connect(id)
 	sMAXNUM[id][sXPPACK2] = 0;
 	sMAXNUM[id][sXPPACK3] = 0;
 	
-	nSETTING[ KILLZOOM ][ id ] = 1;
-	nSETTING[ MESSAGE ][ id ] = 1;
-	nSETTING[ EFFECT ][ id ] = 1;
-	nSETTING[ FASTMENU ][ id ] = 1;
-	nSETTING[ SKINS ][ id ] = 1;
-	
 	sGETITEM[id][bVIPMODE] = false;
 	
-	LoadData2( id );
+	//LoadData2( id );
 	
 	get_user_authid(id, g_szAuthID[id], charsmax(g_szAuthID[]));
 	
@@ -1044,7 +844,7 @@ public client_disconnect(id)
 	
 	Func_RemoveItem(id);
 	SaveData(id);
-	SaveData2( id );
+	//SaveData2( id );
 	Func_RemoveUserVip(id);
 }
 
@@ -1057,7 +857,7 @@ public Fwd_CmdStart( id, uc_handle )
 	new oldbutton = get_user_oldbutton(id);
 	new flags = get_entity_flags(id);
 
-	if ( get_user_flags(id) & VIP_ACCESS && gPlayerClass[id] || gPlayerItem[id][0] == 11 || gPlayerClass[id] == Rambo )
+	if ( get_user_flags(id) & VIP_ACCESS || gPlayerItem[id][0] == 11 || gPlayerClass[id] == Rambo )
 	{
 		if ( (button & IN_JUMP) && !(flags & FL_ONGROUND) && !(oldbutton & IN_JUMP) && g_iNumJump[id] > 0 )
 		{
@@ -1073,6 +873,8 @@ public Fwd_CmdStart( id, uc_handle )
 			if ( gPlayerItem[id][0] == 11 )
 				g_iNumJump[id]++;
 			if ( gPlayerClass[id] == Rambo )
+				g_iNumJump[id]++;
+			if ( get_user_flags(id) & VIP_ACCESS )
 				g_iNumJump[id]++;
 		}
 	}
@@ -1126,8 +928,7 @@ public Ham_PlayerSpawn( id )
 		return PLUGIN_CONTINUE;
 		
 	ExecuteForward( Forward_spawn, ForwardReturn, id, gPlayerLevel[ id ], gPlayerExperience[id] );
-		
-	//set_task(0.1, "set_fog2", id);	
+	
 	sMAXNUM[id][sHEALTH] = 0;
 	sMAXNUM[id][sHEALTH2] = 0;
 	sMAXNUM[id][sFULLEQUIP] = 0;
@@ -1141,8 +942,8 @@ public Ham_PlayerSpawn( id )
 	sMAXNUM[id][sXPPACK2] = 0;
 	sMAXNUM[id][sXPPACK3] = 0;
 	
-	//strip_user_weapons(id);
-	//give_item(id, "weapon_knife");
+	strip_user_weapons(id);
+	give_item(id, "weapon_knife");
 	switch(get_user_team(id))
 	{
 		case 1: give_item(id, "weapon_glock18");
@@ -1161,13 +962,6 @@ public Ham_PlayerSpawn( id )
 	{
 		Cmd_ClassMenu(id);
 		return PLUGIN_CONTINUE;
-	}
-	else
-	{
-		if ( nSETTING[ FASTMENU][id] )
-		{
-			Cmd_ModMenu(id);
-		}
 	}
 	
 	switch ( gPlayerClass[id] )
@@ -1349,173 +1143,10 @@ public Event_CurWeapon(id, ent)
 {
 	if ( freezetime || !gPlayerClass[id] )
 		return PLUGIN_CONTINUE;
-			
-	new weapon = read_data(2);
-	
-	if ( nSETTING[ SKINS ][ id ] )
-	{
-		switch (weapon)
-		{
-			case CSW_AK47:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[0] );
-				set_pev(id,pev_weaponmodel2, p_weaponmodels[0] );
-			}
-			case CSW_AUG:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[1] );
-				set_pev(id,pev_weaponmodel2, p_weaponmodels[1] );
-			}
-			case CSW_AWP:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[2] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[2] );
-			}
-			case CSW_C4:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[3] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[3] );
-			}
-			case CSW_DEAGLE:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[4] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[4] );
-			}	
-			case CSW_ELITE:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[5] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[5] );
-			}
-			case CSW_FAMAS:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[6] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[6] );
-			}
-			case CSW_FIVESEVEN:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[7] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[7] );
-			}
-			case CSW_FLASHBANG:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[8]);
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[8] );
-			}
-			case CSW_G3SG1:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[9] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[9] );
-			}
-			case CSW_GALIL:
-			{ 
-				set_pev(id, pev_viewmodel2,  v_weaponmodels[10] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[10] );
-			}
-			case CSW_GLOCK18:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[11] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[11] );
-			}
-			case CSW_HEGRENADE:
-			{ 			
-				set_pev(id, pev_viewmodel2, v_weaponmodels[12] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[12] );
-			}
-			case CSW_KNIFE:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[13] );
-				set_pev(id, pev_viewmodel2, v_knifemodelT );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[13] );
-			}
-			case CSW_M3:
-			{ 
-				set_pev(id, pev_viewmodel2,  v_weaponmodels[14] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[14] );
-			}
-			case CSW_M4A1:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[15] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[15] );
-			}
-			case CSW_M249:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[16] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[16] );
-			}
-			case CSW_MAC10:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[17] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[17] );
-			}
-			case CSW_MP5NAVY:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[18] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[18] );
-			}
-			case CSW_P90:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[19] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[19] );
-			}
-			case CSW_P228:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[20] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[20] );
-			}
-			case CSW_SCOUT:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[21] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[21] );
-			}
-			case CSW_SG550:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[22] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[22] );
-			}
-			case CSW_SG552:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[23] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[23] );
-			}
-			case CSW_SMOKEGRENADE:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[24] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[24] );
-			}
-			case CSW_TMP:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[25] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[25] );
-			}
-			case CSW_UMP45:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[26] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[26] );
-			}
-			case CSW_USP:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[27] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[27] );
-			}
-			case CSW_XM1014:
-			{ 
-				set_pev(id, pev_viewmodel2, v_weaponmodels[28] );
-				set_pev(id, pev_weaponmodel2, p_weaponmodels[28] );
-			}
-		}
-	}
-	static szClassname[ 32 ];
-	pev( ent, pev_classname, szClassname, charsmax( szClassname ) );
-		
-	if( equal( szClassname, "grenade" ) )
-	{
-		engfunc( EngFunc_SetModel, ent, p_weaponmodels[8]  );
-		set_rendering( ent, kRenderFxGlowShell, 250, 0, 0, kRenderNormal, 50 );
-			
-		return FMRES_SUPERCEDE;
-	}
 
 	Func_SetPlayerClassSpeed(id);
+	
+	new weapon = read_data( 2 );
 	
 	if(weapon == CSW_C4)
 		g_planter = id;
@@ -1530,7 +1161,7 @@ public Event_CurWeapon(id, ent)
 		
 		return PLUGIN_CONTINUE;	
 	} else return PLUGIN_HANDLED;
-	return PLUGIN_HANDLED;
+	return PLUGIN_CONTINUE;
 }
 
 public LogEvent_RoundStart()    
@@ -1541,37 +1172,8 @@ public LogEvent_RoundStart()
 	{
 		if(!is_user_alive(id))
 			continue;
-		
-		set_task(0.1, "Func_SetPlayerClassSpeed", id+TASK_SET_SPEED);
-		
-		if(nSETTING[ EFFECT][id])
-		{
-			set_task(0.1, "FuncStartFade", id);
-			new rand = random_num(1,4);
-			
-			switch(rand)
-			{
-				case 1: client_cmd( 0, "mp3 play sound/%s", s_startsound2[0]);
-				case 2: client_cmd( 0, "mp3 play sound/%s", s_startsound2[1]);
-				case 3: client_cmd( 0, "mp3 play sound/%s", s_startsound2[2]);
-				case 4: client_cmd( 0, "mp3 play sound/%s", s_startsound2[3]);
-			}
-		}
-	}
-	static ent, classname[8], model[32];
-	ent = engfunc(EngFunc_FindEntityInSphere,g_maxplayers,Float:{0.0,0.0,0.0},4800.0);
-	while(ent)
-	{
-		if(pev_valid(ent))
-		{
-			pev(ent,pev_classname,classname,7);
-			if(containi(classname,"armoury")!=-1)
-			{
-				pev(ent,pev_model,model,31);
-				W_Model_Hook(ent,model);
-			}
-		}
-		ent = engfunc(EngFunc_FindEntityInSphere,ent,Float:{0.0,0.0,0.0},4800.0);
+
+		set_task( 0.1, "Func_SetPlayerClassSpeed", id+TASK_SET_SPEED);
 	}
 }
 
@@ -1778,17 +1380,20 @@ public Event_DeathMsg()
 		
 		if ( get_user_flags(attacker) & VIP_ACCESS  )
 		{
+			new ammount = get_pcvar_num(bCVARS[gHEALTHVIP]);
+			new zdravie = ( health+ammount < uITEMS[OZIVENIE][attacker] )? health+ammount: uITEMS[OZIVENIE][attacker];
+			set_user_health(attacker, zdravie);
+		
 			gPlayerExperience[attacker] += get_pcvar_num(bCVARS[gKILLVIP]);
-			cs_set_user_money(attacker, cs_get_user_money(attacker) + get_cvar_num(bCVARSMONEY[gMONEYVIP]) );
-			set_user_health(attacker, get_user_health(attacker) + get_cvar_num(bCVARS[gHEALTHVIP]));
+			cs_set_user_money(attacker, cs_get_user_money(attacker) + get_cvar_num(bCVARS[gMONEYVIP]) );
 			
 			set_hudmessage(255, 212, 0, 0.50, 0.33, 1, 6.0, 4.0);
-			ShowSyncHudMsg(attacker, g_sync_hudmsg[6], "+%i XP / +%i HP", get_pcvar_num(bCVARS[gKILLVIP]), get_pcvar_num(bCVARS[gHEALTHVIP]));
+			ShowSyncHudMsg(attacker, g_sync_hudmsg6, "+%i XP / +%i HP", get_pcvar_num(bCVARS[gKILLVIP]), get_pcvar_num(bCVARS[gHEALTHVIP]));
 		} 
 		else
 		{
 			set_hudmessage(255, 212, 0, 0.50, 0.33, 1, 6.0, 4.0);
-			ShowSyncHudMsg(attacker, g_sync_hudmsg[6], "+%i XP", new_bonus);
+			ShowSyncHudMsg(attacker, g_sync_hudmsg6, "+%i XP", new_bonus);
 		
 			gPlayerExperience[attacker] += new_bonus;
 		}
@@ -1797,13 +1402,13 @@ public Event_DeathMsg()
 			new itemxp = 50;
 			gPlayerExperience[attacker] += itemxp;
 			set_hudmessage(255, 212, 0, 0.3, 0.1, 1, 6.0, 4.0);
-			ShowSyncHudMsg(attacker, g_sync_hudmsg[6], "+%i XP", itemxp);
+			ShowSyncHudMsg(attacker, g_sync_hudmsg6, "+%i XP", itemxp);
 		}
 	}
 
-	if ( gPlayerItem[id][0] == 7 && random(2) == 2 || (gPlayerClass[id] == Terminator && random(2) == 2) )
+	if ( gPlayerItem[id][0] == 7 && random(3) == 2 || gPlayerClass[id] == Terminator && random(3) == 2 )
 	{
-		set_task(1.0, "Func_PlayerRespawn", id);
+		set_task( 1.0, "Func_PlayerRespawn", id );
 	}
 	
 	sMAXNUM[id][sHEALTH] = 0;
@@ -1838,17 +1443,6 @@ public Ham_PlayerKilled(victim, attacker)
 		
 		addItem(origin);
 	}
-	if ( gPlayerItem[victim][0] == 7 && random(2) == 2 || gPlayerClass[victim] == Terminator && random(2) == 2 )
-	{
-		set_task(1.0, "Func_PlayerRespawn", victim + TASK_PLAYER_RESPAWN);
-	}
-	if ( nSETTING[ KILLZOOM][victim] )
-	{
-		if (attacker != victim || is_user_connected(attacker))
-		{
-			set_task(0.1, "Func_KillerZoomEffect", victim);
-		}
-	} else return PLUGIN_HANDLED;
 	return HAM_IGNORED;
 }
 
@@ -1879,12 +1473,13 @@ public addItem(origin[3])
 	set_pev(ent, pev_origin, fOrigin);
 	
 	set_pev(ent,pev_renderfx,kRenderFxGlowShell);
-	switch(random_num(1,4))
+	switch(random_num(1,5))
 	{
 		case 1: set_pev(ent,pev_rendercolor,Float:{0.0,0.0,255.0});
 		case 2: set_pev(ent,pev_rendercolor,Float:{0.0,255.0,0.0});
 		case 3: set_pev(ent,pev_rendercolor,Float:{255.0,0.0,0.0});
 		case 4: set_pev(ent,pev_rendercolor,Float:{255.0,255.0,255.0});
+		case 5: set_pev(ent,pev_rendercolor,Float:{255.0,80.0,20.0});
 	}
 }
 
@@ -1896,7 +1491,8 @@ public give_present(id)
 	{
 		case 0:
 		{
-			ColorMsg( id, "^1[^4%s^1]^3 V tomto boxe ziadny darcek nebol...", BOXTAG );
+			gPlayerExperience[id] += 500;
+			ColorMsg( id, "^1[^4%s^1]^3 Dostal si darcek^4 +500XP^3.", BOXTAG );
 		}	
 		case 1:
 		{
@@ -1931,7 +1527,8 @@ public give_present(id)
 		}
 		case 6:
 		{
-			ColorMsg( id, "^1[^4%s^1]^3 V tomto boxe ziadny darcek nebol...", BOXTAG );
+			gPlayerExperience[id] += 300;
+			ColorMsg( id, "^1[^4%s^1]^3 Dostal si darcek^4 +300XP^3.", BOXTAG );
 		}
 		case 7:
 		{
@@ -2083,6 +1680,8 @@ public LogEvent_RoundEnd()
 		g_iRocket[ tempid ] = 0;
 		g_iMine[ tempid ] = 0;
 		g_iDynamit[ tempid ] = 0;
+		client_cmd( 0, "stopsound" );
+		client_cmd( 0, "mp3 stop" );
 		
 		if ( is_user_alive( tempid ) )
 		{
@@ -2296,7 +1895,7 @@ public Cmd_ModMenu_Handler(id, key)
 			} else ColorMsg( id, "^1[^4%s^1] Nedostatok bodov.", PLUGIN );
 		}
 		case 4: Cmd_HelpMenu(id);
-		case 5: Cmd_HerneNastavenia(id);
+		case 5: client_cmd( id, "codsetting" );
 		case 6: client_cmd(id, "say /vip");
 		case 7: Cmd_Spect(id);
 		case 9: return PLUGIN_HANDLED;
@@ -2361,81 +1960,6 @@ public Cmd_HelpMenu_Handler(id, key)
 	return PLUGIN_HANDLED;
 }
 
-public Cmd_HerneNastavenia(id)
-{
-	new SettingTexT[556];
-	
-	new nLen = format( SettingTexT, 555, "\rHerne Nastavenia:" );
-	nLen += format( SettingTexT[nLen], 555-nLen, "^n\y1. \wKill Zoom [%s\w]", ( nSETTING[ KILLZOOM ][ id ] == 1 ) ? "\yZAPNUTE" : "\rVYPNUTE" );
-	nLen += format( SettingTexT[nLen], 555-nLen, "^n\d - Priblizenie obrazovky na utocnika." );
-	nLen += format( SettingTexT[nLen], 555-nLen, "^n\y2. \wInfo Spravy [%s\w]" , ( nSETTING[ MESSAGE ][ id ] == 1 ) ? "\yZAPNUTE" : "\rVYPNUTE" );
-	nLen += format( SettingTexT[nLen], 555-nLen, "^n\d - Zobrazenie Pomocnych sprav v chate." );
-	nLen += format( SettingTexT[nLen], 555-nLen, "^n\y3. \wStart Effect [%s\w]" , ( nSETTING[ EFFECT ][ id ] == 1 ) ? "\yZAPNUTE" : "\rVYPNUTE" );
-	nLen += format( SettingTexT[nLen], 555-nLen, "^n\d - Na zaciatku kola sa spusti hudba + zeleny fade.." );
-	nLen += format( SettingTexT[nLen], 555-nLen, "^n\y4. \wFast Menu [%s\w]" , ( nSETTING[ FASTMENU ][ id ] == 1 ) ? "\yZAPNUTE" : "\rVYPNUTE" );
-	nLen += format( SettingTexT[nLen], 555-nLen, "^n\d - Zobrazovanie hlavneho menu pri spawne.." );
-	nLen += format( SettingTexT[nLen], 555-nLen, "^n\y5. \wModely Zbrani [%s\w]" , ( nSETTING[ SKINS ][ id ] == 1 ) ? "\yZAPNUTE" : "\rVYPNUTE" );
-	nLen += format( SettingTexT[nLen], 555-nLen, "^n\d - Nove modely pre zbrane." );
-	
-	nLen += format( SettingTexT[nLen], 555-nLen, "^n\y6. Herne Menu" );
-	nLen += format( SettingTexT[nLen], 555-nLen, "^n^n\y0. \wKoniec" );
-	
-	show_menu(id, SETT_MENU, SettingTexT, -1, "SettingMenuSelect" );
-}
-
-public Cmd_HerneNastavenia_Handler(id, key) 
-{
-	switch ( key ) 
-	{
-		case 0:
-		{
-			nSETTING[ KILLZOOM ][ id ] = ( nSETTING[ KILLZOOM ][ id ] == 1 ) ? 0 : 1;
-			Cmd_HerneNastavenia(id);
-		}
-		case 1:
-		{
-			nSETTING[ MESSAGE ][ id ] = ( nSETTING[ MESSAGE ][ id ] == 1 ) ? 0 : 1;
-			Cmd_HerneNastavenia(id);
-		}
-		case 2:
-		{
-			nSETTING[ EFFECT ][ id ] = ( nSETTING[ EFFECT ][ id ] == 1 ) ? 0 : 1;
-			Cmd_HerneNastavenia(id);
-		}
-		case 3:
-		{
-			nSETTING[ FASTMENU ][ id ] = ( nSETTING[ FASTMENU ][ id ] == 1 ) ? 0 : 1;
-			Cmd_HerneNastavenia(id);
-		}
-		case 4:
-		{
-			nSETTING[ SKINS ][ id ] = ( nSETTING[ SKINS ][ id ] == 1 ) ? 0 : 1;
-			Cmd_HerneNastavenia( id );
-		}
-		case 5:
-		{
-			Cmd_ModMenu( id );
-		}
-		case 9: return PLUGIN_HANDLED;
-	}
-	SaveData2( id );
-	return PLUGIN_HANDLED;
-}
-
-public Func_ChangeModels( id )
-{
-	if ( nSETTING[ SKINS ][ id ] == 1 )
-	{
-		nSETTING[ SKINS ][ id ] = 0;
-		ColorMsg( id, "^1[^4%s^1] Modely/Skiny zbrani boli^4 VYPNUTE", PLUGIN );
-	} else if ( nSETTING[ SKINS ][ id ] == 0 )
-	{
-		nSETTING[ SKINS ][ id ] = 1;
-		ColorMsg( id, "^1[^4%s^1] Modely/Skiny zbrani boli^4 ZAPNUTE", PLUGIN );
-	}
-	return PLUGIN_CONTINUE;
-}
-
 public Cmd_UpgradeMenu(id)
 {
 	new MenuTexT[356];
@@ -2451,7 +1975,6 @@ public Cmd_UpgradeMenu(id)
 	nLen += format( MenuTexT[nLen], 355-nLen, "^n^t^t\y+ Rychlost" );
 	nLen += format( MenuTexT[nLen], 355-nLen, "^n\y5. \wVesta: %s%i\w/\r%i", ( uITEMS[VESTA][id] != get_pcvar_num( uLIMIT[MAXVESTA] ) ) ? "\d" : "\r", uITEMS[VESTA][id], get_pcvar_num( uLIMIT[MAXVESTA] ) );
 	nLen += format( MenuTexT[nLen], 355-nLen, "^n^t^t\y+ Brnenie" );
-	nLen += format( MenuTexT[nLen], 355-nLen, "^n^n\y6. \wHerne Menu" );
 	nLen += format( MenuTexT[nLen], 355-nLen, "^n^n\y0. \wKoniec" );
 	
 	show_menu(id, UPG_MENU, MenuTexT, -1, "UpgradeMenuSelect" );
@@ -2571,8 +2094,9 @@ public Cmd_UpgradeMenu_Handler(id, key)
 				ColorMsg( id, "^1[^4%s^1] Nemas dostatok bodov!!", PLUGIN );
 			}
 		}
-		case 5: Cmd_ModMenu(id);
+		case 9: return PLUGIN_HANDLED;
 	}
+	SaveData(id);
 	if ( uITEMS[POINTS][id] > 0 )
 		Cmd_UpgradeMenu(id);
 	return PLUGIN_CONTINUE;
@@ -2594,7 +2118,6 @@ public Cmd_ResetPoints(id)
 	ColorMsg( id, "^1[^4%s^1] Tvoje body boli resetovane.", PLUGIN );
 	SelectSounds(id);
 	gPlayerReset[id] = true;
-
 }
 
 public TrainingSanitary(id)
@@ -2922,7 +2445,7 @@ public Touch_WeaponBox(touched, toucher)
     
 	static model[ 32 ];
 	pev( touched, pev_model, model, 31 );
-	if( equal( model, new_w_models[29] ) )
+	if( equal( model, "models/codmw/w_backpack.mdl" ) )
 		return PLUGIN_CONTINUE;
 	return PLUGIN_HANDLED;
 } 
@@ -2975,27 +2498,48 @@ public Cmd_ShopMenu(id)
 	new nLen = format( ShopText, 511, "\yObchod (Strana 1)^n" );
 	
 	
-	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_HEALTH]) ) nLen += format( ShopText[nLen], 511-nLen, "^n\y1. \d[\yLEVEL:\r %i\d] \dBandaz", get_pcvar_num(sCVARS[LEVEL_HEALTH]) );
-	else nLen += format( ShopText[nLen], 511-nLen, "^n\y1.\w Bandaz \d[\r+%i HP \d(%s%i\d/\r%i\d)] \R \y%i $", get_pcvar_num(sCVARS[GET_HEALTH]),( sMAXNUM[id][sHEALTH] != get_pcvar_num(sCVARS[MAX_HEALTH]) ) ? "\y" : "\r",  sMAXNUM[id][sHEALTH], get_pcvar_num(sCVARS[MAX_HEALTH]), get_pcvar_num(sCVARS[COST_HEALTH]));
-	
-	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_HEALTH2]) ) nLen += format( ShopText[nLen], 511-nLen, "^n\y2. \d[\yLEVEL:\r %i\d] \dOsetrenie", get_pcvar_num(sCVARS[LEVEL_HEALTH2]));
-	else nLen += format( ShopText[nLen], 511-nLen, "^n\y2.\w Osetrenie \d[\r+%i HP \d(%s%i\d/\r%i\d)] \R \y%i $", get_pcvar_num(sCVARS[GET_HEALTH2]),( sMAXNUM[id][sHEALTH2] != get_pcvar_num(sCVARS[MAX_HEALTH2]) ) ? "\y" : "\r", sMAXNUM[id][sHEALTH2], get_pcvar_num(sCVARS[MAX_HEALTH2]), get_pcvar_num(sCVARS[COST_HEALTH2]));
-	
-	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_FULLEQUIP]) ) nLen += format( ShopText[nLen], 511-nLen, "^n\y3. \d[\yLEVEL:\r %i\d] \dFull Equip", get_pcvar_num(sCVARS[LEVEL_FULLEQUIP]));
-	else nLen += format( ShopText[nLen], 511-nLen, "^n\y3.\w Full Equip \d[He,2xFb, +Lekarnicka (%s%i\d/\r%i\d)] \R \y%i $", ( sMAXNUM[id][sFULLEQUIP] != get_pcvar_num(sCVARS[MAX_FULLEQUIP]) ) ? "\y" : "\r", sMAXNUM[id][sFULLEQUIP], get_pcvar_num(sCVARS[MAX_FULLEQUIP]), get_pcvar_num(sCVARS[COST_FULLEQUIP]));
-	
-	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_RANDOMITEM]) ) nLen += format( ShopText[nLen], 511-nLen, "^n\y4. \d[\yLEVEL:\r %i\d] \dRandom Item", get_pcvar_num(sCVARS[LEVEL_RANDOMITEM]));
-	else nLen += format( ShopText[nLen], 511-nLen, "^n\y4.\w Random Item \d[Vyberie nahodny item (%s%i\d/\r%i\d)] \R \y%i $", ( sMAXNUM[id][sRANDOMITEM] != get_pcvar_num(sCVARS[MAX_RANDOMITEM]) ) ? "\y" : "\r",sMAXNUM[id][sRANDOMITEM], get_pcvar_num(sCVARS[MAX_RANDOMITEM]), get_pcvar_num(sCVARS[COST_RANDOMITEM]));
-	
-	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_TOMBOLA]) ) nLen += format( ShopText[nLen], 511-nLen, "^n\y5. \d[\yLEVEL:\r %i\d] \dTombola", get_pcvar_num(sCVARS[LEVEL_TOMBOLA]));
-	else nLen += format( ShopText[nLen], 511-nLen, "^n\y5.\w Tombola \d[(%s%i\d/\r%i\d) tiketov] \R \y%i %$", ( sMAXNUM[id][sTOMBOLA] != get_pcvar_num(sCVARS[MAX_TOMBOLA]) ) ? "\y" : "\r",sMAXNUM[id][sTOMBOLA], get_pcvar_num(sCVARS[MAX_TOMBOLA]) , get_pcvar_num(sCVARS[COST_TOMBOLA]));
-	
-	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_DEFUSKIT]) ) nLen += format( ShopText[nLen], 511-nLen, "^n\y6. \d[\yLEVEL:\r %i\d] \dDefuseKit", get_pcvar_num(sCVARS[LEVEL_DEFUSKIT]));
-	else nLen += format( ShopText[nLen], 511-nLen, "^n\y6.\w DefuseKit \d[\r<CT ONLY> \dBalicek na zneskodnenie bomby] \R \y%i $", get_pcvar_num(sCVARS[COST_DEFUSKIT]));
-	
-	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_EXTRATOMBOLA]) ) nLen += format( ShopText[nLen], 511-nLen, "^n\y1. \d[\yLEVEL:\r %i\d] \dExtra Tombola", get_pcvar_num(sCVARS[LEVEL_EXTRATOMBOLA]));
-	else nLen += format( ShopText[nLen], 511-nLen, "^n\y7.\w Extra Tombola \d[(%s%i\d/\r%i\d) tiketov] \R \y%i $", ( sMAXNUM[id][sEXTRATOMBOLA] != get_pcvar_num(sCVARS[MAX_EXTRATOMBOLA]) ) ? "\y" : "\r",sMAXNUM[id][sEXTRATOMBOLA], get_pcvar_num(sCVARS[MAX_EXTRATOMBOLA]), get_pcvar_num(sCVARS[COST_EXTRATOMBOLA]));
-	
+	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_HEALTH]) )
+	{
+		nLen += format( ShopText[nLen], 511-nLen, "^n\y1. \d[\yLEVEL:\r %i\d] \dBandaz", get_pcvar_num(sCVARS[LEVEL_HEALTH]) );
+	} else {
+		nLen += format( ShopText[nLen], 511-nLen, "^n\y1.\w Bandaz \d[\r+%i HP \d(%s%i\d/\r%i\d)] \R \y%i $", get_pcvar_num(sCVARS[GET_HEALTH]),( sMAXNUM[id][sHEALTH] != get_pcvar_num(sCVARS[MAX_HEALTH]) ) ? "\y" : "\r",  sMAXNUM[id][sHEALTH], get_pcvar_num(sCVARS[MAX_HEALTH]), get_pcvar_num(sCVARS[COST_HEALTH]));
+	}
+	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_HEALTH2]) )
+	{
+		nLen += format( ShopText[nLen], 511-nLen, "^n\y2. \d[\yLEVEL:\r %i\d] \dOsetrenie", get_pcvar_num(sCVARS[LEVEL_HEALTH2]));
+	} else {
+		nLen += format( ShopText[nLen], 511-nLen, "^n\y2.\w Osetrenie \d[\r+%i HP \d(%s%i\d/\r%i\d)] \R \y%i $", get_pcvar_num(sCVARS[GET_HEALTH2]),( sMAXNUM[id][sHEALTH2] != get_pcvar_num(sCVARS[MAX_HEALTH2]) ) ? "\y" : "\r", sMAXNUM[id][sHEALTH2], get_pcvar_num(sCVARS[MAX_HEALTH2]), get_pcvar_num(sCVARS[COST_HEALTH2]));
+	}
+	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_FULLEQUIP]) )
+	{
+		nLen += format( ShopText[nLen], 511-nLen, "^n\y3. \d[\yLEVEL:\r %i\d] \dFull Equip", get_pcvar_num(sCVARS[LEVEL_FULLEQUIP]));
+	} else {
+		nLen += format( ShopText[nLen], 511-nLen, "^n\y3.\w Full Equip \d[He,2xFb, +Lekarnicka (%s%i\d/\r%i\d)] \R \y%i $", ( sMAXNUM[id][sFULLEQUIP] != get_pcvar_num(sCVARS[MAX_FULLEQUIP]) ) ? "\y" : "\r", sMAXNUM[id][sFULLEQUIP], get_pcvar_num(sCVARS[MAX_FULLEQUIP]), get_pcvar_num(sCVARS[COST_FULLEQUIP]));
+	}
+	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_RANDOMITEM]) )
+	{
+		nLen += format( ShopText[nLen], 511-nLen, "^n\y4. \d[\yLEVEL:\r %i\d] \dRandom Item", get_pcvar_num(sCVARS[LEVEL_RANDOMITEM]));
+	} else {
+		nLen += format( ShopText[nLen], 511-nLen, "^n\y4.\w Random Item \d[Vyberie nahodny item (%s%i\d/\r%i\d)] \R \y%i $", ( sMAXNUM[id][sRANDOMITEM] != get_pcvar_num(sCVARS[MAX_RANDOMITEM]) ) ? "\y" : "\r",sMAXNUM[id][sRANDOMITEM], get_pcvar_num(sCVARS[MAX_RANDOMITEM]), get_pcvar_num(sCVARS[COST_RANDOMITEM]));
+	}
+	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_TOMBOLA]) )
+	{
+		nLen += format( ShopText[nLen], 511-nLen, "^n\y5. \d[\yLEVEL:\r %i\d] \dTombola", get_pcvar_num(sCVARS[LEVEL_TOMBOLA]));
+	} else {
+		nLen += format( ShopText[nLen], 511-nLen, "^n\y5.\w Tombola \d[(%s%i\d/\r%i\d) tiketov] \R \y%i %$", ( sMAXNUM[id][sTOMBOLA] != get_pcvar_num(sCVARS[MAX_TOMBOLA]) ) ? "\y" : "\r",sMAXNUM[id][sTOMBOLA], get_pcvar_num(sCVARS[MAX_TOMBOLA]) , get_pcvar_num(sCVARS[COST_TOMBOLA]));
+	}
+	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_DEFUSKIT]) )
+	{
+		nLen += format( ShopText[nLen], 511-nLen, "^n\y6. \d[\yLEVEL:\r %i\d] \dDefuseKit", get_pcvar_num(sCVARS[LEVEL_DEFUSKIT]));
+	} else {
+		nLen += format( ShopText[nLen], 511-nLen, "^n\y6.\w DefuseKit \d[\r<CT ONLY> \dBalicek na zneskodnenie bomby] \R \y%i $", get_pcvar_num(sCVARS[COST_DEFUSKIT]));
+	}
+	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_EXTRATOMBOLA]) )
+	{
+		nLen += format( ShopText[nLen], 511-nLen, "^n\y7. \d[\yLEVEL:\r %i\d] \dExtra Tombola", get_pcvar_num(sCVARS[LEVEL_EXTRATOMBOLA]));
+	} else {
+		nLen += format( ShopText[nLen], 511-nLen, "^n\y7.\w Extra Tombola \d[(%s%i\d/\r%i\d) tiketov] \R \y%i $", ( sMAXNUM[id][sEXTRATOMBOLA] != get_pcvar_num(sCVARS[MAX_EXTRATOMBOLA]) ) ? "\y" : "\r",sMAXNUM[id][sEXTRATOMBOLA], get_pcvar_num(sCVARS[MAX_EXTRATOMBOLA]), get_pcvar_num(sCVARS[COST_EXTRATOMBOLA]));
+	}
 	nLen += format( ShopText[nLen], 511-nLen, "^n^n\y8.\w Dalej" );
 	nLen += format( ShopText[nLen], 511-nLen, "^n\y0.\w Koniec" );
 	
@@ -3003,41 +2547,7 @@ public Cmd_ShopMenu(id)
 	return PLUGIN_HANDLED;
 }
 
-public Cmd_Shop2Menu(id)
-{
-	if ( !is_user_connected(id) || !is_user_alive(id) )
-		return PLUGIN_HANDLED;
-	
-	new ShopText[512];
-	
-	new nLen = format( ShopText, 511, "\yObchod (Strana 2)^n" );
-	
-	
-	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_PARACHUTE]) ) nLen += format( ShopText[nLen], 511-nLen, "^n\y2. \d[\yLEVEL:\r %i\d] \dPadak", get_pcvar_num(sCVARS[LEVEL_PARACHUTE]));
-	else nLen += format( ShopText[nLen], 511-nLen, "^n\y1.\w Padak \d[\r<NA CELU MAPU> \dPismeno \y'E'\d] \R \y%i $", get_pcvar_num(sCVARS[COST_PARACHUTE]));
-	
-	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_TELEPORTNADE]) ) nLen += format( ShopText[nLen], 511-nLen, "^n\y3. \d[\yLEVEL:\r %i\d] \dTeleportacny Granat \r(VIP)", get_pcvar_num(sCVARS[LEVEL_TELEPORTNADE]));
-	else nLen += format( ShopText[nLen], 511-nLen, "^n\y2.\w Teleportacny Granat \r(VIP) \d[Pri dopade sa teleportnete. (%s%i\d/\r%i\d)] \R \y%i %s", ( sMAXNUM[id][sTELEPORTNADE] != get_pcvar_num(sCVARS[MAX_TELEPORTNADE]) ) ? "\y" : "\r",sMAXNUM[id][sTELEPORTNADE], get_pcvar_num(sCVARS[MAX_TELEPORTNADE]), get_pcvar_num(sCVARS[COST_TELEPORTNADE]) );
-	
-	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_GODMODE]) ) nLen += format( ShopText[nLen], 511-nLen, "^n\y4. \d[\yLEVEL:\r %i\d] \dNesmrtelnost \r(VIP)", get_pcvar_num(sCVARS[LEVEL_GODMODE]));
-	else nLen += format( ShopText[nLen], 511-nLen, "^n\y3.\w Nesmrtelnost \r(VIP) \d[\y %.f \dsekund - pismeno \y'C'\d (%s%i\d/\r%i\d)] \R \y%i $", get_pcvar_float(sCVARS[GET_TIMEGODMODE]),( sMAXNUM[id][sGODMODE] != get_pcvar_num(sCVARS[MAX_GODMODE]) ) ? "\y" : "\r",  sMAXNUM[id][sGODMODE], get_pcvar_num(sCVARS[MAX_GODMODE]), get_pcvar_num(sCVARS[COST_GODMODE]));
-	
-	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_XPPACK]) ) nLen += format( ShopText[nLen], 511-nLen, "^n\y5. \d[\yLEVEL:\r %i\d] \dBalicek Skusenosti", get_pcvar_num(sCVARS[LEVEL_XPPACK]));
-	else nLen += format( ShopText[nLen], 511-nLen, "^n\y4.\w Balicek Skusenosti \d[\y+%i\r XP \d(%s%i\d/\r%i\d)] \R \y%i $", get_pcvar_num(sCVARS[GET_XPPACK]),( sMAXNUM[id][sXPPACK] != get_pcvar_num(sCVARS[MAX_XPPACK]) ) ? "\y" : "\r", sMAXNUM[id][sXPPACK], get_pcvar_num(sCVARS[MAX_XPPACK]), get_pcvar_num(sCVARS[COST_XPPACK]));
-	
-	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_XPPACK2]) ) nLen += format( ShopText[nLen], 511-nLen, "^n\y6. \d[\yLEVEL:\r %i\d] \dExtra Skusenosti", get_pcvar_num(sCVARS[LEVEL_XPPACK2]));
-	else nLen += format( ShopText[nLen], 511-nLen, "^n\y5.\w Extra Skusenosti \d[\y+%i\r XP \d(%s%i\d/\r%i\d)] \R \y%i $", get_pcvar_num(sCVARS[GET_XPPACK2]),( sMAXNUM[id][sXPPACK2] != get_pcvar_num(sCVARS[MAX_XPPACK2]) ) ? "\y" : "\r", sMAXNUM[id][sXPPACK2], get_pcvar_num(sCVARS[MAX_XPPACK2]), get_pcvar_num(sCVARS[COST_XPPACK2]));
-	
-	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_XPPACK3]) ) nLen += format( ShopText[nLen], 511-nLen, "^n\y7. \d[\yLEVEL:\r %i\d] \dPlatinum Skusenosti", get_pcvar_num(sCVARS[LEVEL_XPPACK3]));
-	else nLen += format( ShopText[nLen], 511-nLen, "^n\y6.\w Platinum Skusenosti \d[\y+%i\r XP \d(%s%i\d/\r%i\d)] \R \y%i $", get_pcvar_num(sCVARS[GET_XPPACK3]),( sMAXNUM[id][sXPPACK3] != get_pcvar_num(sCVARS[MAX_XPPACK3]) ) ? "\y" : "\r", sMAXNUM[id][sXPPACK3], get_pcvar_num(sCVARS[MAX_XPPACK3]), get_pcvar_num(sCVARS[COST_XPPACK3]));
-	
-	nLen += format( ShopText[nLen], 511-nLen, "^n^n\y8.\w Spat" );
-	nLen += format( ShopText[nLen], 511-nLen, "^n\y0.\w Koniec" );
-	
-	show_menu(id, SHOP2_MENU, ShopText, -1, "Shop2MenuSelect" );
-	return PLUGIN_HANDLED;
-}
-	
+
 public Cmd_ShopMenu_Handler(id, key) 
 {
 	SelectSounds(id);
@@ -3243,6 +2753,59 @@ public Cmd_ShopMenu_Handler(id, key)
 	return PLUGIN_HANDLED;
 }
 
+public Cmd_Shop2Menu(id)
+{
+	if ( !is_user_connected(id) || !is_user_alive(id) )
+		return PLUGIN_HANDLED;
+	
+	new ShopText[912];
+	
+	new nLen = format( ShopText, 911, "\yObchod (Strana 2)^n" );
+	
+	
+	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_PARACHUTE]) )
+	{
+		nLen += format( ShopText[nLen], 911-nLen, "^n\y1. \d[\yLEVEL:\r %i\d] \dPadak", get_pcvar_num(sCVARS[LEVEL_PARACHUTE]));
+	} else {
+		nLen += format( ShopText[nLen], 911-nLen, "^n\y1.\w Padak \d[\r<NA CELU MAPU> \dPismeno \y'E'\d] \R \y%i $", get_pcvar_num(sCVARS[COST_PARACHUTE]));
+	}
+	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_TELEPORTNADE]) )
+	{
+		nLen += format( ShopText[nLen], 911-nLen, "^n\y2. \d[\yLEVEL:\r %i\d] \dTeleportacny Granat \r(VIP)", get_pcvar_num(sCVARS[LEVEL_TELEPORTNADE]));
+	} else {
+		nLen += format( ShopText[nLen], 911-nLen, "^n\y2.\w Teleportacny Granat \r(VIP) \d[\y Pocet Granatov \d (%s%i\d/\r%i\d)] \R \y%i $", ( sMAXNUM[id][sTELEPORTNADE] != get_pcvar_num(sCVARS[MAX_TELEPORTNADE]) ) ? "\y" : "\r", sMAXNUM[id][sTELEPORTNADE], get_pcvar_num(sCVARS[MAX_TELEPORTNADE]), get_pcvar_num(sCVARS[COST_TELEPORTNADE]) );
+	}
+	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_GODMODE]) )
+	{
+		nLen += format( ShopText[nLen], 911-nLen, "^n\y3. \d[\yLEVEL:\r %i\d] \dNesmrtelnost \r(VIP)", get_pcvar_num(sCVARS[LEVEL_GODMODE]));
+	} else {
+		nLen += format( ShopText[nLen], 911-nLen, "^n\y3.\w Nesmrtelnost \r(VIP) \d[\y %.f \dsekund - pismeno \y'C'\d (%s%i\d/\r%i\d)] \R \y%i $", get_pcvar_float(sCVARS[GET_TIMEGODMODE]),( sMAXNUM[id][sGODMODE] != get_pcvar_num(sCVARS[MAX_GODMODE]) ) ? "\y" : "\r",  sMAXNUM[id][sGODMODE], get_pcvar_num(sCVARS[MAX_GODMODE]), get_pcvar_num(sCVARS[COST_GODMODE]));
+	}
+	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_XPPACK]) )
+	{
+		nLen += format( ShopText[nLen], 911-nLen, "^n\y4. \d[\yLEVEL:\r %i\d] \dBalicek Skusenosti", get_pcvar_num(sCVARS[LEVEL_XPPACK]));
+	} else {
+		nLen += format( ShopText[nLen], 911-nLen, "^n\y4.\w Balicek Skusenosti \d[\y+%i\r XP \d(%s%i\d/\r%i\d)] \R \y%i $", get_pcvar_num(sCVARS[GET_XPPACK]),( sMAXNUM[id][sXPPACK] != get_pcvar_num(sCVARS[MAX_XPPACK]) ) ? "\y" : "\r", sMAXNUM[id][sXPPACK], get_pcvar_num(sCVARS[MAX_XPPACK]), get_pcvar_num(sCVARS[COST_XPPACK]));
+	}
+	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_XPPACK2]) )
+	{
+		nLen += format( ShopText[nLen], 911-nLen, "^n\y5. \d[\yLEVEL:\r %i\d] \dExtra Skusenosti", get_pcvar_num(sCVARS[LEVEL_XPPACK2]));
+	} else {
+		nLen += format( ShopText[nLen], 911-nLen, "^n\y5.\w Extra Skusenosti \d[\y+%i\r XP \d(%s%i\d/\r%i\d)] \R \y%i $", get_pcvar_num(sCVARS[GET_XPPACK2]),( sMAXNUM[id][sXPPACK2] != get_pcvar_num(sCVARS[MAX_XPPACK2]) ) ? "\y" : "\r", sMAXNUM[id][sXPPACK2], get_pcvar_num(sCVARS[MAX_XPPACK2]), get_pcvar_num(sCVARS[COST_XPPACK2]));
+	}
+	if ( gPlayerLevel[id] < get_pcvar_num(sCVARS[LEVEL_XPPACK3]) )
+	{
+		nLen += format( ShopText[nLen], 911-nLen, "^n\y6. \d[\yLEVEL:\r %i\d] \dPlatinum Skusenosti", get_pcvar_num(sCVARS[LEVEL_XPPACK3]));
+	} else {
+		nLen += format( ShopText[nLen], 911-nLen, "^n\y6.\w Platinum Skusenosti \d[\y+%i\r XP \d(%s%i\d/\r%i\d)] \R \y%i $", get_pcvar_num(sCVARS[GET_XPPACK3]),( sMAXNUM[id][sXPPACK3] != get_pcvar_num(sCVARS[MAX_XPPACK3]) ) ? "\y" : "\r", sMAXNUM[id][sXPPACK3], get_pcvar_num(sCVARS[MAX_XPPACK3]), get_pcvar_num(sCVARS[COST_XPPACK3]));
+	}
+	nLen += format( ShopText[nLen], 911-nLen, "^n^n\y7.\w Spat" );
+	nLen += format( ShopText[nLen], 911-nLen, "^n\y0.\w Koniec" );
+	
+	show_menu(id, SHOP2_MENU, ShopText, -1, "Shop2MenuSelect" );
+	return PLUGIN_HANDLED;
+}
+
 public Cmd_Shop2Menu_Handler(id, key) 
 {
 	SelectSounds(id);
@@ -3397,7 +2960,7 @@ public Cmd_Shop2Menu_Handler(id, key)
 			ColorMsg( id, "^1[^4%s^1] Kupil si^3 Platinum Skusenosti^1.", SHOPNAME );
 			Func_CheckPlayerLevel(id);
 		}
-		case 7: Cmd_ShopMenu(id);
+		case 6: Cmd_ShopMenu(id);
 		case 9: return PLUGIN_HANDLED;
 	}
 	return PLUGIN_HANDLED;
@@ -3637,9 +3200,25 @@ public Cmd_BankMenu_Handler(id, key)
 			}
 			client_cmd( id, "messagemode VYBRAT_PENIAZE" );
 		}
-		case 1: client_cmd( id, "messagemode VLOZIT_PENIAZE" );
+		case 1:
+		{
+			if ( b_peniaze[id] == 100000 )
+			{
+				ColorMsg( id, "^1[^4%s^1] Maximalny pocet penazi v banke moze byt^4 100000 $^3.", BANKTAG );
+				return PLUGIN_HANDLED;
+			}
+			client_cmd( id, "messagemode VLOZIT_PENIAZE" );
+		}
 		case 2: Cmd_TransferMenu( id );
-		case 3: Cmd_BankChangeMenu( id );
+		case 3:
+		{
+			if ( gPlayerLevel[id] == get_pcvar_num( mCVARS[gMAXLEVEL] )  )
+			{
+				ColorMsg( id, "^1[^4%s^1] Dosiahnuty maximalny level.", BANKTAG );
+				return PLUGIN_HANDLED;
+			}
+			Cmd_BankChangeMenu( id );
+		}
 		case 9: return PLUGIN_HANDLED;
 	}
 	return PLUGIN_HANDLED;
@@ -3859,7 +3438,7 @@ public Cmd_BankChangeMenu_Handler(id, key)
 				return PLUGIN_HANDLED;
 			}
 			b_peniaze[id] -= 10000;
-			uITEMS[POINTS][id] += 1;
+			uITEMS[POINTS][id]++;
 			ColorMsg( id, "^1[^4%s^1] Uspesne si zamenil^4 10000 $^1 za^3 1 BOD^1.", BANKTAG );
 		}
 		case 1:
@@ -3920,162 +3499,6 @@ public Cmd_BankChangeMenu_Handler(id, key)
 		case 9: return PLUGIN_HANDLED;
 	}
 	return PLUGIN_HANDLED;
-}
-
-
-public W_Model_Hook(ent,model[])
-{
-	if(equali(model, old_w_models[0]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[0]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[1]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[1]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[2]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[2]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[3]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[3]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[4]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[4]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[5]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[5]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[6]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[6]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[7]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[7]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[8]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[8]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[9]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[9]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[10]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[10]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[11]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[11]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[12]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[12]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[13]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[13]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[14]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[14]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[15]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[15]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[16]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[16]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[17]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[17]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[18]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[18]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[19]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[19]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[20]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[20]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[21]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[21]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[22]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[22]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[23]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[23]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[24]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[24]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[25]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[25]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[26]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[26]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[27]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[27]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[28]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[28]);
-		return FMRES_SUPERCEDE;
-	}
-	if(equali(model, old_w_models[29]))
-	{
-		engfunc(EngFunc_SetModel,ent,new_w_models[29]);
-		return FMRES_SUPERCEDE;
-	}
-	return FMRES_IGNORED;
 }
 
 public client_PreThink(id)
@@ -4352,42 +3775,6 @@ public LoadData(id, class)
 	uITEMS[ POINTS ][ id ] = ( gPlayerLevel[ id ]-1 )*2-uITEMS[ INTELIGENCIA ][ id ]-uITEMS[ ZIVOT ][ id ]-uITEMS[ VYTRVALOST ][ id ]-uITEMS[ RYCHLOST ][ id ]-uITEMS[ VESTA ][ id ];
 } 
 
-public SaveData2( id )
-{
-	new steamid[ 35 ];
-	get_user_authid(id, steamid, sizeof ( steamid ) - 1);
-
-	new fkey[ 54 ];
-	new fdata[ 26 ];
-	format( fkey,53, "%s-codmwsetting",steamid );
-	format( fdata, 25, "%i#%i#%i#%i", nSETTING[ KILLZOOM ][ id ], nSETTING[ MESSAGE ][ id ], nSETTING[ EFFECT ][ id ], nSETTING[ SKINS ][ id ] );
-
-	fvault_set_data( fDataBase2, fkey, fdata );
-}
-
-public LoadData2( id )
-{
-	new steamid[ 35 ];
-	get_user_authid(id, steamid, sizeof ( steamid ) - 1);
-
-	new fkey[ 54 ];
-	new fdata[ 26 ];
-	format( fkey,53, "%s-codmwsetting",steamid );
-	format( fdata, 25, "%i#%i#%i#%i", nSETTING[ KILLZOOM ][ id ], nSETTING[ MESSAGE ][ id ], nSETTING[ EFFECT ][ id ], nSETTING[ SKINS ][ id ] );
-	fvault_get_data( fDataBase2, fkey, fdata, 255 );
-	
-	replace_all( fdata, 25, "#", " ");
-	
-	new fKillZoom[32], fMessage[32], fEffect[32], fSkins[32];
-	
-	parse( fdata, fKillZoom, 31, fMessage, 31, fEffect, 31, fSkins, 31 );
-	
-	nSETTING[ KILLZOOM ][ id ] = str_to_num( fKillZoom );
-	nSETTING[ MESSAGE ][ id ] = str_to_num( fMessage );
-	nSETTING[ EFFECT ][ id ] = str_to_num( fEffect );
-	nSETTING[ SKINS ][ id ] = str_to_num( fSkins );
-} 
-
 public Cmd_DropItem(id)
 {
 	if ( gPlayerItem[id][0] )
@@ -4543,12 +3930,12 @@ public Cmd_PlayerItemDescription(id, menu, item)
 
 public Func_PlayerRespawn(id)
 {
-	if ( is_user_alive(id) || gPlayerItem[id][0] != 7)
+	if ( is_user_alive(id) )
 		return PLUGIN_HANDLED;
-
+		
 	set_pev(id, pev_deadflag, DEAD_RESPAWNABLE);
 	dllfunc(DLLFunc_Think, id);
-	
+		
 	if (is_user_bot(id) && pev(id, pev_deadflag) == DEAD_RESPAWNABLE)
 	{
 		dllfunc(DLLFunc_Spawn, id);
@@ -4577,7 +3964,7 @@ public Func_CheckPlayerLevel(id)
 		{
 			gPlayerLevel[id]++;
 			set_hudmessage(60, 200, 25, -1.0, 0.25, 1, 1.0, 2.0, 0.1, 0.2, 2);
-			ShowSyncHudMsg(id, g_sync_hudmsg[3], "Gratulujem! Dosiahol si %d level!", gPlayerLevel[id] );
+			ShowSyncHudMsg(id, g_sync_hudmsg5, "Gratulujem! Dosiahol si %d level!", gPlayerLevel[id] );
 			ColorMsg(id, "^1[^4%s^1]^1 Gratulujeme ti k novemu levelu^3(%d)^4 %s^1. Vylepsi si dalsie kolo postavu.", PLUGIN, gPlayerLevel[id], SzLevelName[gPlayerLevel[id]] );
 			
 			new rsnd = random_num(0,2);
@@ -4597,6 +3984,7 @@ public Func_CheckPlayerLevel(id)
 		}
 	}
 }
+
 
 public ShowInformation(id) 
 {
@@ -4636,11 +4024,11 @@ public ShowInformation(id)
 		if( gPlayerLevel[target] == get_pcvar_num( mCVARS[gMAXLEVEL] ) )
 		{
 			set_hudmessage(0, 255, 42, 0.02, 0.18, 0, 0.0, 0.3, 0.0, 0.0);
-			ShowSyncHudMsg(id, g_sync_hudmsg[1], "| Meno: %s^n| Trieda: %s^n| Skusenosti: MAX^n| Level(%i): %s^n| Item: %s", targetname, SzClassName[gPlayerClass[target]], gPlayerLevel[target], MAX_PLAYER_LEVEL2, SzItemName[gPlayerItem[target][0]]);
+			ShowSyncHudMsg(id, g_sync_hudmsg2, "| Meno: %s^n| Trieda: %s^n| Skusenosti: MAX^n| Level(%i): %s^n| Item: %s", targetname, SzClassName[gPlayerClass[target]], gPlayerLevel[target], SzLevelName[gPlayerLevel[target]], SzItemName[gPlayerItem[target][0]]);
 		} else 	
 		{
 			set_hudmessage(0, 255, 42, 0.02, 0.18, 0, 0.0, 0.3, 0.0, 0.0);
-			ShowSyncHudMsg(id, g_sync_hudmsg[1], "| Meno: %s^n| Trieda: %s^n| Skusenosti: %i / %i^n| Level(%i): %s^n| Item: %s", targetname, SzClassName[gPlayerClass[target]], gPlayerExperience[target], xp, gPlayerLevel[target], SzLevelName[gPlayerLevel[target]], SzItemName[gPlayerItem[target][0]] );
+			ShowSyncHudMsg(id, g_sync_hudmsg2, "| Meno: %s^n| Trieda: %s^n| Skusenosti: %i / %i^n| Level(%i): %s^n| Item: %s", targetname, SzClassName[gPlayerClass[target]], gPlayerExperience[target], xp, gPlayerLevel[target], SzLevelName[gPlayerLevel[target]], SzItemName[gPlayerItem[target][0]] );
 		}
 		
 		return PLUGIN_CONTINUE;
@@ -4648,37 +4036,37 @@ public ShowInformation(id)
 	if( gPlayerLevel[id] == get_pcvar_num( mCVARS[gMAXLEVEL] ) )
 	{
 		set_hudmessage(0, 255, 42, 0.02, 0.18, 0, 0.0, 0.3, 0.0, 0.0);
-		ShowSyncHudMsg(id, g_sync_hudmsg[1], "| Trieda: %s^n| Skusenosti: MAX^n| Level(%i): %s^n| Item: %s", SzClassName[gPlayerClass[id]], gPlayerLevel[id], MAX_PLAYER_LEVEL2, SzItemName[gPlayerItem[id][0]]);
+		ShowSyncHudMsg(id, g_sync_hudmsg1, "| Trieda: %s^n| Skusenosti: MAX^n| Level(%i): %s^n| Item: %s", SzClassName[gPlayerClass[id]], gPlayerLevel[id], SzLevelName[gPlayerLevel[id]], SzItemName[gPlayerItem[id][0]]);
 	} else 	
 	{
 		set_hudmessage(0, 255, 42, 0.02, 0.18, 0, 0.0, 0.3, 0.0, 0.0);
-		ShowSyncHudMsg(id, g_sync_hudmsg[1], "| Trieda: %s^n| Skusenosti: %i / %i^n| Level(%i): %s^n| Item: %s", SzClassName[gPlayerClass[id]], gPlayerExperience[id], xp, gPlayerLevel[id], SzLevelName[gPlayerLevel[id]], SzItemName[gPlayerItem[id][0]]);
+		ShowSyncHudMsg(id, g_sync_hudmsg1, "| Trieda: %s^n| Skusenosti: %i / %i^n| Level(%i): %s^n| Item: %s", SzClassName[gPlayerClass[id]], gPlayerExperience[id], xp, gPlayerLevel[id], SzLevelName[gPlayerLevel[id]], SzItemName[gPlayerItem[id][0]]);
 	}
 	
 	if ( get_user_health(id) > 255 )
 	{
 		set_hudmessage(200, 200, 00, 0.02, 0.9, 0, 0.0, 0.3, 0.0, 0.0);
-		ShowSyncHudMsg(id, g_sync_hudmsg[5], "Zivot: %i", get_user_health(id));
+		ShowSyncHudMsg(id, g_sync_hudmsg3, "Zivot: %i", get_user_health(id));
 	}
 	if ( g_iRocket[id] > 0 )
 	{
 		set_hudmessage(240, 220, 200, 0.79, -1.0, 0, 0.0, 0.3, 0.0, 0.0, 2);
-		ShowSyncHudMsg(id, g_sync_hudmsg[2], "[Rakiet: %i]", g_iRocket[id]);
+		ShowSyncHudMsg(id, g_sync_hudmsg4, "[Rakiet: %i]", g_iRocket[id]);
 	}
 	if ( g_iMine[id] > 0 )
 	{
 		set_hudmessage(240, 220, 200, 0.77, -1.0, 0, 0.0, 0.3, 0.0, 0.0, 2);
-		ShowSyncHudMsg(id, g_sync_hudmsg[2], "[Min: %i]", g_iMine[id]);
+		ShowSyncHudMsg(id, g_sync_hudmsg4, "[Min: %i]", g_iMine[id]);
 	}
 	if ( g_iFirstAidKit[id] > 0 )
 	{
 		set_hudmessage(240, 220, 200, 0.75, -1.0, 0, 0.0, 0.3, 0.0, 0.0, 2);
-		ShowSyncHudMsg(id, g_sync_hudmsg[2], "[Lekarniciek: %i]", g_iFirstAidKit[id]);
+		ShowSyncHudMsg(id, g_sync_hudmsg4, "[Lekarniciek: %i]", g_iFirstAidKit[id]);
 	}
 	if ( g_iDynamit[id] > 0 )
 	{
 		set_hudmessage(240, 220, 200, 0.73, -1.0, 0, 0.0, 0.3, 0.0, 0.0, 2);
-		ShowSyncHudMsg(id, g_sync_hudmsg[2], "[Dynamitov: %i]", g_iDynamit[id]);
+		ShowSyncHudMsg(id, g_sync_hudmsg4, "[Dynamitov: %i]", g_iDynamit[id]);
 	}
 	return PLUGIN_CONTINUE;
 }  
@@ -4695,8 +4083,8 @@ public Func_SetPlayerClassSpeed(id)
 {
 	id -= id > 32 ? TASK_SET_SPEED : 0;
 	
-	if ( gPlayerClass[id] )
-		set_user_maxspeed(id, ufITEMS[ZRYCHLENIE][id]);
+	if ( gPlayerClass[id] && !freezetime )
+		set_pev(id, pev_maxspeed, ufITEMS[ZRYCHLENIE][id]);
 }
 
 public Func_ChangerModel(id, reset)
@@ -4705,7 +4093,9 @@ public Func_ChangerModel(id, reset)
 		return PLUGIN_CONTINUE;
 	
 	if ( reset )
+	{
 		cs_reset_user_model(id);
+	}
 	else
 	{
 		new num = random_num(0,4);
@@ -4714,64 +4104,25 @@ public Func_ChangerModel(id, reset)
 			case 1:
 			{
 				if( get_user_flags(id) & VIP_ACCESS )
+				{
 					cs_set_user_model(id, m_vipmodel_ct);
-				else
+				} else {
 					cs_set_user_model(id, SzCtPlayerModel[num]);
+				}
 			}
 			case 2:
 			{
 				if( get_user_flags(id) & VIP_ACCESS )
+				{
 					cs_set_user_model(id, m_vipmodel_t);
-				else
+				} else {
 					cs_set_user_model(id, SzTePlayerModel[num]);
+				}
 			}
 		}
 	}
-	return PLUGIN_CONTINUE;
+	return PLUGIN_HANDLED;
 }
-
-public Pomoc(id)
-{
-	if ( !nSETTING[ MESSAGE ][id] )
-		return PLUGIN_HANDLED;
-		
-	new msg = random_num(1, 10);
-	switch ( msg )
-	{
-		case 1: ColorMsg( 0, "^1[^4%s^1] Napis^4 /prikazy^1 pre otvorenie prikazov na servery.", PLUGIN );
-		case 2: ColorMsg( 0, "^1[^4%s^1] Stlac^4 M^1 alebo napis^4 /menu^1,^4 /cod^1 pre otvorenie hlavneho menu.", PLUGIN );
-		case 3: ColorMsg( 0, "^1[^4%s^1] Pre zistenie informacii o iteme napis^4 /item^1.", PLUGIN );
-		case 4: ColorMsg( 0, "^1[^4%s^1] Pre zistenie informacii o triede napis^4 /classinfo^1.", PLUGIN );
-		case 5: ColorMsg( 0, "^1[^4%s^1] Pre zistenie informacii o itemoch napis^4 /iteminfo^1.", PLUGIN );
-		case 6: ColorMsg( 0, "^1[^4%s^1] Stlac^4 N^1 alebo napis^4 /shop^1 pre otvorenie obchodu.", PLUGIN );
-		case 7: ColorMsg( 0, "^1[^4%s^1] Stlac^4 G^1 pre zahodenie itemu.", PLUGIN );
-		case 8: ColorMsg( 0, "^1[^4%s^1] Stlac^4 O^1 pre otvorenie nastavenia modu.", PLUGIN );
-		case 9: ColorMsg( 0, "^1[^4%s^1] Stlac^4 C^1 (radio3) pre vyuzitie itemu.", PLUGIN );
-		case 10: ColorMsg( 0, "^1[^4%s^1] Nabinduj si vyuzitie itemu ^4 bind ^"pismeno^" +coduseitem^1.", PLUGIN );
-	}
-	set_task(60.0, "Pomoc");
-	return PLUGIN_CONTINUE;
-}
-
-public Func_BGRadio()
-{
-	new radio = random_num(1, 10);
-	switch ( radio )
-	{
-		case 1: client_cmd(0, "spk sound/%s", s_radiosound[0]);
-		case 2: client_cmd(0, "spk sound/%s", s_radiosound[1]);
-		case 3: client_cmd(0, "spk sound/%s", s_radiosound[2]);
-		case 4: client_cmd(0, "spk sound/%s", s_radiosound[3]);
-		case 5: client_cmd(0, "spk sound/%s", s_radiosound[4]);
-		case 6: client_cmd(0, "spk sound/%s", s_radiosound[5]);
-		case 7: client_cmd(0, "spk sound/%s", s_radiosound[6]);
-		case 8: client_cmd(0, "spk sound/%s", s_radiosound[7]);
-		case 9: client_cmd(0, "spk sound/%s", s_radiosound[8]);
-		case 10: client_cmd(0, "spk sound/%s", s_radiosound[9]);
-	}
-	set_task(20.0, "Func_BGRadio");
-}
-
 
 public Fwd_PlayerPreThink( id ) 
 {
@@ -4815,22 +4166,6 @@ public CommandBlock( id )
 	if( is_user_alive(id) || is_user_bot(id) )
 		return PLUGIN_HANDLED;
 	return PLUGIN_HANDLED;		
-}
-	
-public Task_HideMoney( Player )
-{
-	if ( !is_user_alive(Player - TASK_SPAWN) )
-		return;
-		
-	// Zakazuje zobrazovanie penazi
-	message_begin(MSG_ONE, g_msg_hideweapon, _, Player - TASK_SPAWN);
-	write_byte(HIDE_MONEY);
-	message_end();
-	
-	// Zakazuje zobrazovanie HL mieritka
-	message_begin(MSG_ONE, g_msg_crosshair, _, Player - TASK_SPAWN);
-	write_byte(0);
-	message_end();
 }
 
 stock bool:is_grenade( ent )
@@ -4974,20 +4309,6 @@ public Cmd_ResetPlayerScore(id)
 	ColorMsg(id, "^1[^4%s^1] Tvoje skore bolo vynulovane.", PLUGIN);
 	return PLUGIN_HANDLED;
 }
-
-public FuncStartFade(id)
-{
-	message_begin( MSG_ONE_UNRELIABLE, get_user_msgid("ScreenFade"), _, id );
-	write_short( 1000 );	// duration
-	write_short( 1000 );	// hold time
-	write_short( SF_FADE_IN );	// flags
-	write_byte( 010 );	// red
-	write_byte( 255 );	// green
-	write_byte( 010 );	// blue
-	write_byte( 60 );	// alpha
-	message_end();
-}
-
 
 public admin_add_money(id, level, cid)
 {
@@ -5189,7 +4510,7 @@ public hook_say(id)
 	if (admin)
 	{
 		get_user_team (id, color, 9);
-		format (strName, 191, "%s^x01[^x04%s^x01] ^x03%s", alive, ( gPlayerLevel[id] != get_pcvar_num( mCVARS[gMAXLEVEL] ) ) ? SzLevelName[gPlayerLevel[id]] : MAX_PLAYER_LEVEL2, name);
+		format (strName, 191, "%s^x01[^x04%s^x01] ^x03%s", alive, SzLevelName[gPlayerLevel[id]], name);
 		format (strText, 191, "%s", message);
 	}
 	
@@ -5258,7 +4579,7 @@ public hook_teamsay(id)
 	if (admin)
 	{
 		get_user_team (id, color, 9);
-		format (strName, 191, "%s(^x03%s^x01)^x01[^x04%s^x01] ^x03%s", alive, playerTeamName, ( gPlayerLevel[id] != get_pcvar_num( mCVARS[gMAXLEVEL] ) ) ? SzLevelName[gPlayerLevel[id]] : MAX_PLAYER_LEVEL2, name);
+		format (strName, 191, "%s(^x03%s^x01)^x01[^x04%s^x01] ^x03%s", alive, playerTeamName, SzLevelName[gPlayerLevel[id]], name);
 		format (strText, 191, "%s", message);
 	}
 	
@@ -5279,17 +4600,17 @@ public sendMessage (color[], alive)
 {
 	new teamName[10];
 	
-	for (new player = 1; player < g_maxplayers; player++)
+	for (new iplayer = 1; iplayer < g_maxplayers; iplayer++)
 	{
-		if (!is_user_connected(player))
+		if (!is_user_connected(iplayer))
 			continue;
 		
-		if (alive && is_user_alive(player) || !alive && !is_user_alive(player) || get_user_flags(player) & get_pcvar_num( bCVARS[gADMIN] ) )
+		if (alive && is_user_alive(iplayer) || !alive && !is_user_alive(iplayer) || get_user_flags(iplayer) & get_pcvar_num( bCVARS[gADMIN] ) )
 		{
-			get_user_team (player, teamName, 9);    // Stores user's team name to change back after sending the message
-			changeTeamInfo (player, color);        // Changes user's team according to color choosen
-			writeMessage (player, message);        // Writes the message on player's chat
-			changeTeamInfo (player, teamName);    // Changes user's team back to original
+			get_user_team (iplayer, teamName, 9);    // Stores user's team name to change back after sending the message
+			changeTeamInfo (iplayer, color);        // Changes user's team according to color choosen
+			writeMessage (iplayer, message);        // Writes the message on player's chat
+			changeTeamInfo (iplayer, teamName);    // Changes user's team back to original
 		}
 	}
 }
@@ -5299,37 +4620,37 @@ public sendTeamMessage (color[], alive, playerTeam)
 {
 	new teamName[10];
 	
-	for (new player = 1; player < g_maxplayers; player++)
+	for (new iplayer = 1; iplayer < g_maxplayers; iplayer++)
 	{
-		if (!is_user_connected(player))
+		if (!is_user_connected(iplayer))
 			continue;
 		
-		if (get_user_team(player) == playerTeam || get_user_flags(player) & get_pcvar_num( bCVARS[gADMIN] ) )
+		if (get_user_team(iplayer) == playerTeam || get_user_flags(iplayer) & get_pcvar_num( bCVARS[gADMIN] ) )
 		{
-			if (alive && is_user_alive(player) || !alive && !is_user_alive(player) || get_user_flags(player) & get_pcvar_num( bCVARS[gADMIN] ) )
+			if (alive && is_user_alive(iplayer) || !alive && !is_user_alive(iplayer) || get_user_flags(iplayer) & get_pcvar_num( bCVARS[gADMIN] ) )
 			{
-				get_user_team (player, teamName, 9);    // Stores user's team name to change back after sending the message
-				changeTeamInfo (player, color);        // Changes user's team according to color choosen
-				writeMessage (player, message);        // Writes the message on player's chat
-				changeTeamInfo (player, teamName);    // Changes user's team back to original
+				get_user_team (iplayer, teamName, 9);    // Stores user's team name to change back after sending the message
+				changeTeamInfo (iplayer, color);        // Changes user's team according to color choosen
+				writeMessage (iplayer, message);        // Writes the message on player's chat
+				changeTeamInfo (iplayer, teamName);    // Changes user's team back to original
 			}
 		}
 	}
 }
 
-public changeTeamInfo (player, team[])
+public changeTeamInfo (iplayer, team[])
 {
-	message_begin (MSG_ONE, get_user_msgid ("TeamInfo"), _, player);
-	write_byte (player);                // Write byte needed
+	message_begin (MSG_ONE, get_user_msgid ("TeamInfo"), _, iplayer);
+	write_byte (iplayer);                // Write byte needed
 	write_string (team);                // Changes player's team
 	message_end();                    // Also Needed
 }
 
 
-public writeMessage (player, message[])
+public writeMessage (iplayer, message[])
 {
-	message_begin (MSG_ONE, get_user_msgid ("SayText"), {0, 0, 0}, player);    // Tells to modify sayText (Which is responsable for writing colored messages)
-	write_byte (player);                    // Write byte needed
+	message_begin (MSG_ONE, get_user_msgid ("SayText"), {0, 0, 0}, iplayer);    // Tells to modify sayText (Which is responsable for writing colored messages)
+	write_byte (iplayer);                    // Write byte needed
 	write_string (message);                    // Effectively write the message, finally, afterall
 	message_end ();                        // Needed as always
 }
@@ -5390,4 +4711,3 @@ stock ColorMsg( const id , const input[] , any:... )
 		}
 	}
 }
-
