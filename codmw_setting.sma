@@ -162,18 +162,17 @@ new const new_w_models[][]  =
 
 new v_knifemodelT[] = "models/codmw/v_knife_r.mdl";
 
-new const s_startsound2[][] = 
-{
-	"codmw/cod_bgsound.mp3",
-	"codmw/cod_bgsound2.mp3",
-	"codmw/cod_bgsound3.mp3",
-	"codmw/cod_bgsound4.mp3"
-};
-
 new const s_radiosound[][] = 
 { 
 	"codmw/radio01.wav", "codmw/radio02.wav", "codmw/radio03.wav", "codmw/radio04.wav", "codmw/radio05.wav",
 	"codmw/radio06.wav", "codmw/radio07.wav", "codmw/radio08.wav", "codmw/radio09.wav", "codmw/radio10.wav" 
+};
+
+new const startsound2[ ][ ] =
+{    
+	"codmw/cod_bgsound.mp3",
+	"codmw/cod_bgsound3.mp3",
+	"codmw/cod_bgsound4.mp3"
 };
 
 public plugin_precache( )
@@ -190,22 +189,23 @@ public plugin_precache( )
 		
 	precache_model( v_knifemodelT );
 	
-	for (new i = 0; i < sizeof(s_startsound2); i++)
-	precache_sound(s_startsound2[i]);
-	
 	for (new i = 0; i < sizeof(s_radiosound); i++)
 		precache_sound(s_radiosound[i]);
+		
+	for (new i = 0; i < sizeof(startsound2); i++)
+		precache_sound(startsound2[i]);
 }
 
 public plugin_init( )
 {
 	register_plugin( PLUGIN, VERSION, AUTHOR );
 	
-	//register_impulse( 100, "Func_ChangeModels" );
+	register_impulse( 100, "Func_ChangeModels" );
 	
 	RegisterHam( Ham_Killed, "player", "Ham_PlayerKilled" );
 	
 	register_logevent( "LogEvent_RoundStart", 2, "1=Round_Start" ); 
+	register_logevent( "LogEvent_RoundEnd", 2, "1=Round_End" );
 	
 	register_event( "CurWeapon","Event_CurWeapon","be", "1=1" );
 	
@@ -290,7 +290,7 @@ public Cmd_HerneNastavenia_Handler(id, key)
 	SaveData( id );
 	return PLUGIN_HANDLED;
 }
-/*
+
 public Func_ChangeModels( id )
 {
 	if ( nSETTING[ SKINS ][ id ] == 1 )
@@ -303,7 +303,7 @@ public Func_ChangeModels( id )
 		ColorMsg( id, "^1[^4%s^1] Modely/Skiny zbrani boli^4 ZAPNUTE", PLUGIN );
 	}
 	return PLUGIN_CONTINUE;
-}*/
+}
 
 public Ham_PlayerKilled( victim, attacker )
 {
@@ -334,14 +334,14 @@ public LogEvent_RoundStart()
 		if ( nSETTING[ EFFECT ][ id ] )
 		{
 			set_task(0.1, "FuncStartFade", id);
-			new rand = random_num(1,4);
+		
+			new rand = random_num(1,3);
 			
-			switch( rand )
+			switch(rand)
 			{
-				case 1: client_cmd( 0, "mp3 play sound/%s", s_startsound2[ 0 ] );
-				case 2: client_cmd( 0, "mp3 play sound/%s", s_startsound2[ 1 ] );
-				case 3: client_cmd( 0, "mp3 play sound/%s", s_startsound2[ 2 ] );
-				case 4: client_cmd( 0, "mp3 play sound/%s", s_startsound2[ 3 ] );
+				case 1: client_cmd( 0, "mp3 play sound/%s", startsound2[0]);
+				case 2: client_cmd( 0, "mp3 play sound/%s", startsound2[1]);
+				case 3: client_cmd( 0, "mp3 play sound/%s", startsound2[2]);
 			}
 		}
 	}
@@ -360,6 +360,18 @@ public LogEvent_RoundStart()
 		ent = engfunc( EngFunc_FindEntityInSphere, ent, Float:{ 0.0 ,0.0 ,0.0 }, 4800.0 );
 	}
 }
+
+public LogEvent_RoundEnd()
+{	
+	set_task( 2.0, "Task_EndSound" );
+}
+
+public Task_EndSound()
+{
+	client_cmd( 0, "stopsound" );
+	client_cmd( 0, "mp3 stop" );	
+}
+
 
 public Event_CurWeapon( id, ent )
 {		
@@ -519,7 +531,6 @@ public Event_CurWeapon( id, ent )
 	}
 	return PLUGIN_HANDLED;
 }
-
 
 public W_Model_Hook( ent,model[ ] )
 {
