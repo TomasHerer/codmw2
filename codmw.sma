@@ -395,7 +395,7 @@ new const SzClassName[][] =
 	"Terminator [VIP]",	// 12
 	"Legionar [VIP]",	// 13
 	"Saboter",		// 14
-	"Patrol Soldier",	// 15
+	"Patrol Soldier [VIP]",	// 15
 	"Guverner",		// 16
 	"Pro Sniper [VIP]",	// 17
 	"Ochrankar"		// 18
@@ -1265,35 +1265,45 @@ public Ham_PlayerDamage(this, idinflictor, idattacker, Float:damage, damagebits)
 	}
 	
 	if(uITEMS[VYTRVALOST][this]>0)
+	{
 		damage -= uITEMS[REDUKCIA][this]*damage;
-		
+	}
 	if(uITEMS[INTELIGENCIA][idattacker]>0)
+	{
 		damage += uITEMS[INTELIGENCIA][idattacker]*0.4;
-	
+	}
 	if(gPlayerItem[this][0] == 2 || gPlayerItem[this][0] == 3)
+	{
 		damage-=(float(gPlayerItem[this][1])<damage)? float(gPlayerItem[this][1]): damage;
-	
+	}
 	if(gPlayerItem[idattacker][0] == 5 && !UTIL_In_FOV(this, idattacker) && UTIL_In_FOV(idattacker, this))
+	{
 		damage*=2.0;
-	
+	}
 	if(gPlayerItem[idattacker][0] == 10)
+	{
 		damage+=gPlayerItem[idattacker][1];
-	
+	}
 	if(gPlayerItem[this][0] == 12)
+	{
 		damage-=(5.0<damage)? 5.0: damage;
-	
+	}
 	if(weapon == CSW_AWP && gPlayerItem[idattacker][0] == 13 || (gPlayerClass[idattacker] == ProSniper && random(2) == 2))
+	{
 		damage=float(health);
-		
+	}
 	if(weapon == CSW_DEAGLE && gPlayerItem[idattacker][0] == 35 )
+	{
 		damage*=2.0;
-	
+	}
 	if(gPlayerItem[idattacker][0] == 21 || gPlayerClass[idattacker] == Guverner )
+	{
 		damage+=15;
-	
+	}
 	if(gPlayerItem[idattacker][0] == 22)
+	{
 		damage+=25;
-	
+	}
 	if(idinflictor != idattacker && entity_get_int(idinflictor, EV_INT_movetype) != 5)
 	{
 		if((gPlayerItem[idattacker][0] == 9 && random_num(1, gPlayerItem[idattacker][1]) == 1) || gPlayerItem[idattacker][0] == 10)
@@ -1834,6 +1844,13 @@ public Cmd_ClassMenu_Handler(id, menu, item)
 	if(item == Legionar && !(get_user_flags(id) & VIP_ACCESS))
 	{
 		ColorMsg( id, "^1[^4%s^1]^4 Nemas opravnenie si vybrat postavu^3 %s^4!!! Zakup si ho^3 /vip^4.", PLUGIN, SzClassName[Legionar]);
+		Cmd_ClassMenu(id);
+		return PLUGIN_CONTINUE;
+	
+	}
+	if(item == PatrolSoldier && !(get_user_flags(id) & VIP_ACCESS))
+	{
+		ColorMsg( id, "^1[^4%s^1]^4 Nemas opravnenie si vybrat postavu^3 %s^4!!! Zakup si ho^3 /vip^4.", PLUGIN, SzClassName[ProSniper]);
 		Cmd_ClassMenu(id);
 		return PLUGIN_CONTINUE;
 	
