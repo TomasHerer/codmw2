@@ -264,8 +264,6 @@ new const SzLevelName[][] =
 	"Creed Prime", "Global Creed", "Veteran", "Veteran Prime", "Global Veteran"			// 96-99
 };
 
-new bool: gPlayerReset[33];
-
 enum _:UPGRADE
 {
 	POINTS, INTELIGENCIA, ZIVOT, OZIVENIE, VYTRVALOST, RYCHLOST, VESTA, KEVLAR
@@ -718,8 +716,6 @@ public plugin_init()
 	register_clcmd( "drop", 		"Cmd_DropItem" );
 	register_clcmd( "-coditem",		"Cmd_DropItem" );
 	
-	register_clcmd( "say /reset", 		"Cmd_ResetPoints" );
-	
 	register_clcmd( "say /prikazy", 	"Cmd_ShowHelpMotd" );
 	
 	register_clcmd( "say /rs", 		"Cmd_ResetPlayerScore" );
@@ -1066,11 +1062,6 @@ public Ham_PlayerSpawn( id )
 			give_item(id, "weapon_hegrenade");
 			give_item(id, "weapon_flashbang");
 		} 
-	}
-	
-	if(gPlayerReset[id])
-	{
-		ResetPoints(id);
 	}
 	if ( uITEMS[POINTS][id] > 0 )
 		Cmd_UpgradeMenu(id);
@@ -2117,24 +2108,6 @@ public Cmd_UpgradeMenu_Handler(id, key)
 	if ( uITEMS[POINTS][id] > 0 )
 		Cmd_UpgradeMenu(id);
 	return PLUGIN_CONTINUE;
-}
-
-public ResetPoints(id)
-{    
-	uITEMS[POINTS][id] = gPlayerLevel[id] * 4;
-	uITEMS[INTELIGENCIA][id] = 0;
-	uITEMS[ZIVOT][id] = 0;
-	uITEMS[RYCHLOST][id] = 0;
-	uITEMS[VYTRVALOST][id] = 0;
-	uITEMS[VESTA][id] = 0;
-	gPlayerReset[id] = true;
-}
-
-public Cmd_ResetPoints(id)
-{    
-	ColorMsg( id, "^1[^4%s^1] Tvoje body boli resetovane.", PLUGIN );
-	SelectSounds(id);
-	gPlayerReset[id] = true;
 }
 
 public TrainingSanitary(id)
@@ -4106,7 +4079,7 @@ public Func_SetPlayerClassSpeed(id)
 
 public Func_ChangerModel(id, reset)
 {
-	if ( id<1 || id>32 || !is_user_connected(id) ) 
+	if ( id<1 || id>32 || !is_user_connected(id) || !is_user_alive(id)|| !is_user_bot(id) ) 
 		return PLUGIN_CONTINUE;
 	
 	if ( reset )
