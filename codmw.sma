@@ -1304,7 +1304,9 @@ public Event_Damage(id)
 			gPlayerExperience[attacker]++;
 		}
 	}
-	Func_CheckPlayerLevel(attacker);
+	if ( gPlayerLevel[attacker] < get_pcvar_num( mCVARS[gMAXLEVEL] ) )
+		Func_CheckPlayerLevel(attacker);
+	else return PLUGIN_HANDLED;
 	return PLUGIN_CONTINUE;
 }
 
@@ -1393,8 +1395,9 @@ public Event_DeathMsg()
 	sMAXNUM[id][sXPPACK2] = 0;
 	sMAXNUM[id][sXPPACK3] = 0;
 	cs_set_user_defuse(id, 0);
-	Func_CheckPlayerLevel(attacker);
-	
+	if ( gPlayerLevel[attacker] < get_pcvar_num( mCVARS[gMAXLEVEL] ) )
+		Func_CheckPlayerLevel(attacker);
+	else return PLUGIN_HANDLED;
 	return PLUGIN_CONTINUE;
 }
 
@@ -1554,7 +1557,9 @@ public give_present(id)
 			ColorMsg( id, "^1[^4%s^1]^3 V tomto boxe ziadny darcek nebol...", BOXTAG );
 		}
 	}
-	Func_CheckPlayerLevel(id);
+	if ( gPlayerLevel[id] < get_pcvar_num( mCVARS[gMAXLEVEL] ) )
+		Func_CheckPlayerLevel(id);
+	else return PLUGIN_HANDLED;
 	return PLUGIN_CONTINUE;
 }
 
@@ -1625,7 +1630,8 @@ public LogEvent_PlantBomb()
 			{
 				ColorMsg( id, "^1[^4%s^1] Ziskal si^3 %i EXP^1 za^4 polozenie bomby^1.", PLUGIN , get_pcvar_num(bCVARS[gPLANT]));
 			}
-			Func_CheckPlayerLevel(id);
+			if ( gPlayerLevel[id] < get_pcvar_num( mCVARS[gMAXLEVEL] ) )
+				Func_CheckPlayerLevel(id);
 			client_cmd(0, "spk sound/%s", s_pdsound[0]);
 		}
 	}
@@ -1656,7 +1662,8 @@ public LogEvent_RoundEnd()
 		{
 			gPlayerExperience[ tempid ] += get_pcvar_num(bCVARS[gALIVE]);
 			ColorMsg( tempid, "^1[^4%s^1] Dostal si^4 %i XP^1 za prezitie.", PLUGIN, get_pcvar_num(bCVARS[gALIVE]));
-			Func_CheckPlayerLevel( tempid );
+			if ( gPlayerLevel[tempid] < get_pcvar_num( mCVARS[gMAXLEVEL] ) )
+				Func_CheckPlayerLevel(tempid);
 		}
 		
 	}
@@ -1685,7 +1692,8 @@ public Event_DefuseBomb()
 		else
 			ColorMsg( id, "^1[^4%s^1] Ziskal si^3 %i EXP^1 za^4 zneskodnenie bomby^1.", PLUGIN ,get_pcvar_num(bCVARS[gPLANT]));
 		client_cmd(0, "spk sound/%s", s_pdsound[1]);
-		Func_CheckPlayerLevel(id);
+		if ( gPlayerLevel[id] < get_pcvar_num( mCVARS[gMAXLEVEL] ) )
+			Func_CheckPlayerLevel(id);
 	}
 }
 
@@ -3016,7 +3024,9 @@ public Tombola( id )
 		}
 		
 	}
-	Func_CheckPlayerLevel(id);
+	if ( gPlayerLevel[id] < get_pcvar_num( mCVARS[gMAXLEVEL] ) )
+		Func_CheckPlayerLevel(id);
+	else return PLUGIN_HANDLED;
 	return PLUGIN_CONTINUE;
 }
 
@@ -3091,7 +3101,9 @@ public Tombola2( id )
 			uITEMS[RYCHLOST][id]++;
 		}
 	}
-	Func_CheckPlayerLevel(id);
+	if ( gPlayerLevel[id] < get_pcvar_num( mCVARS[gMAXLEVEL] ) )
+		Func_CheckPlayerLevel(id);
+	else return PLUGIN_HANDLED;
 	return PLUGIN_CONTINUE;
 }
 
