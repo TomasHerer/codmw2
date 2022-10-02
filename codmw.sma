@@ -563,7 +563,7 @@ public plugin_init()
 
 	mCVARS[gMAXSPEED] = register_cvar( "CODMOD_MAXSPEED",			"1600" );
 	mCVARS[gMAXLEVEL] = register_cvar( "CODMOD_MAX_LEVEL",			"101" );
-	mCVARS[gMINPLR_PLANT] = register_cvar( "CODMOD_MINPLAYERS_PLANT",	"1" );
+	mCVARS[gMINPLR_PLANT] = register_cvar( "CODMOD_MINPLAYERS_PLANT",	"6" );
 	mCVARS[gBPAMMO] = register_cvar( "CODMOD_BPAMMO",			"1" );
 	mCVARS[gGAMENAME] = register_cvar( "CODMOD_GAMENAME", 			"Call Of Duty v5.0" );
 	mCVARS[ADMIN]= register_cvar( "CODMOD_ADMINACCESS",			"ADMIN_CVAR" );
@@ -1075,7 +1075,7 @@ public Ham_PlayerSpawn( id )
 				cs_set_user_bpammo(id, weapons[i], maxAmmo[weapons[i]]);
 	
 	ufITEMS[REDUKCIA][id] = (47.3057*(1.0-floatpower( 2.7182, -0.0532*float(uITEMS[VYTRVALOST][id])))/100);
-	uITEMS[OZIVENIE][id] = SzClassHealth[gPlayerClass[id]]+uITEMS[ZIVOT][id]*2;
+	uITEMS[OZIVENIE][id] = SzClassHealth[gPlayerClass[id]]+uITEMS[ZIVOT][id]*1;
 	ufITEMS[ZRYCHLENIE][id] = STANDARD_PLAYER_SPEED*SzClassSpeed[gPlayerClass[id]]+floatround(uITEMS[RYCHLOST][id]*1.3);
 	uITEMS[KEVLAR][id] = SzClassArmor[gPlayerClass[id]]+uITEMS[VESTA][id]*2;
 	
@@ -1323,58 +1323,57 @@ public Event_DeathMsg()
 	
 	if ( get_user_team(id) != get_user_team(attacker) && gPlayerClass[attacker] )
 	{
-		new new_bonus = 0;
-		
-		new_bonus += get_pcvar_num(bCVARS[gKILL]);
-		
-		if ( gPlayerClass[id] == Rambo && gPlayerClass[attacker] != Rambo )
-			new_bonus += get_pcvar_num(bCVARS[gKILL])*2;
-		
-		if ( gPlayerLevel[id] > gPlayerLevel[attacker] )
-			new_bonus += gPlayerLevel[id] - gPlayerLevel[attacker];
-		
-		if ( gPlayerClass[attacker] == Rambo || gPlayerItem[attacker][0] == 15 && maxClip[weapon] != -1 )
-		{
+			new new_bonus = 0;
 			
-			new new_health = (health+20<uITEMS[OZIVENIE][attacker])? health+20: uITEMS[OZIVENIE][attacker];
-			set_user_clip(attacker, maxClip[weapon]);
-			set_user_health(attacker, new_health);
-		}
-		if ( !gPlayerItem[attacker][0] )
-			Func_GiveItem(attacker, random_num(1, sizeof SzItemName-1));
-		
-		if ( gPlayerItem[attacker][0] == 14 )
-		{
-			new new_health = (health+50<uITEMS[OZIVENIE][attacker])? health+50: uITEMS[OZIVENIE][attacker];
-			set_user_health(attacker, new_health);
-		}
-		
-		if ( get_user_flags(attacker) & VIP_ACCESS  )
-		{
-			new ammount = get_pcvar_num(bCVARS[gHEALTHVIP]);
-			new zdravie = ( health+ammount < uITEMS[OZIVENIE][attacker] )? health+ammount: uITEMS[OZIVENIE][attacker];
-			set_user_health(attacker, zdravie);
-		
-			gPlayerExperience[attacker] += get_pcvar_num(bCVARS[gKILLVIP]);
-			cs_set_user_money(attacker, cs_get_user_money(attacker) + get_cvar_num(bCVARS[gMONEYVIP]) );
+			new_bonus += get_pcvar_num(bCVARS[gKILL]);
 			
-			set_hudmessage(255, 212, 0, 0.50, 0.33, 1, 6.0, 4.0);
-			ShowSyncHudMsg(attacker, g_sync_hudmsg6, "+%i XP / +%i HP", get_pcvar_num(bCVARS[gKILLVIP]), get_pcvar_num(bCVARS[gHEALTHVIP]));
-		} 
-		else
-		{
-			set_hudmessage(255, 212, 0, 0.50, 0.33, 1, 6.0, 4.0);
-			ShowSyncHudMsg(attacker, g_sync_hudmsg6, "+%i XP", new_bonus);
-		
-			gPlayerExperience[attacker] += new_bonus;
-		}
-		if ( gPlayerItem[attacker][0] == 32 )
-		{
-			new itemxp = 50;
-			gPlayerExperience[attacker] += itemxp;
-			set_hudmessage(255, 212, 0, 0.3, 0.1, 1, 6.0, 4.0);
-			ShowSyncHudMsg(attacker, g_sync_hudmsg6, "+%i XP", itemxp);
-		}
+			if ( gPlayerClass[id] == Rambo && gPlayerClass[attacker] != Rambo )
+				new_bonus += get_pcvar_num(bCVARS[gKILL])*2;
+			
+			if ( gPlayerLevel[id] > gPlayerLevel[attacker] )
+				new_bonus += gPlayerLevel[id] - gPlayerLevel[attacker];
+			
+			if ( gPlayerClass[attacker] == Rambo || gPlayerItem[attacker][0] == 15 && maxClip[weapon] != -1 )
+			{
+				
+				new new_health = (health+20<uITEMS[OZIVENIE][attacker])? health+20: uITEMS[OZIVENIE][attacker];
+				set_user_clip(attacker, maxClip[weapon]);
+				set_user_health(attacker, new_health);
+			}
+			if ( !gPlayerItem[attacker][0] )
+				Func_GiveItem(attacker, random_num(1, sizeof SzItemName-1));
+			
+			if ( gPlayerItem[attacker][0] == 14 )
+			{
+				new new_health = (health+50<uITEMS[OZIVENIE][attacker])? health+50: uITEMS[OZIVENIE][attacker];
+				set_user_health(attacker, new_health);
+			}
+			if ( get_user_flags(attacker) & VIP_ACCESS  )
+			{
+				new ammount = get_pcvar_num(bCVARS[gHEALTHVIP]);
+				new zdravie = ( health+ammount < uITEMS[OZIVENIE][attacker] )? health+ammount: uITEMS[OZIVENIE][attacker];
+				set_user_health(attacker, zdravie);
+			
+				gPlayerExperience[attacker] += get_pcvar_num(bCVARS[gKILLVIP]);
+				cs_set_user_money(attacker, cs_get_user_money(attacker) + get_cvar_num(bCVARS[gMONEYVIP]) );
+				
+				set_hudmessage(255, 212, 0, 0.50, 0.33, 1, 6.0, 4.0);
+				ShowSyncHudMsg(attacker, g_sync_hudmsg6, "+%i XP / +%i HP", get_pcvar_num(bCVARS[gKILLVIP]), get_pcvar_num(bCVARS[gHEALTHVIP]));
+			} 
+			else
+			{
+				set_hudmessage(255, 212, 0, 0.50, 0.33, 1, 6.0, 4.0);
+				ShowSyncHudMsg(attacker, g_sync_hudmsg6, "+%i XP", new_bonus);
+			
+				gPlayerExperience[attacker] += new_bonus;
+			}
+			if ( gPlayerItem[attacker][0] == 32 )
+			{
+				new itemxp = 50;
+				gPlayerExperience[attacker] += itemxp;
+				set_hudmessage(255, 212, 0, 0.3, 0.1, 1, 6.0, 4.0);
+				ShowSyncHudMsg(attacker, g_sync_hudmsg6, "+%i XP", itemxp);
+			}
 	}
 
 	if ( gPlayerItem[id][0] == 7 && random(3) == 2 || gPlayerClass[id] == Terminator && random(3) == 2 )
@@ -1948,15 +1947,15 @@ public Cmd_UpgradeMenu(id)
 	
 	new nLen = format( MenuTexT, 355, "\rUpgrade Menu: (\y%i\r)", uITEMS[POINTS][id] );
 	nLen += format( MenuTexT[nLen], 355-nLen, "^n\y1. \wInteligencia %s%i\w/\r%i", ( uITEMS[INTELIGENCIA][id] != get_pcvar_num( uLIMIT[MAXINTELIGENCIA] ) )  ? "\d" : "\r", uITEMS[INTELIGENCIA][id], get_pcvar_num( uLIMIT[MAXINTELIGENCIA] )  );
-	nLen += format( MenuTexT[nLen], 355-nLen, "^n^t^t\y+ Poskodenie" );
-	nLen += format( MenuTexT[nLen], 355-nLen, "^n\y2. \wZivot: %s%i\w/\r%i", ( uITEMS[ZIVOT][id] != get_pcvar_num( uLIMIT[MAXZIVOT] ) ) ? "\d" : "\r", uITEMS[ZIVOT][id], get_pcvar_num( uLIMIT[MAXZIVOT] ) );
-	nLen += format( MenuTexT[nLen], 355-nLen, "^n^t^t\y+ Zivot" );
+	nLen += format( MenuTexT[nLen], 355-nLen, "^n^t^t\y+ Poskodenie ( +0.4 DMG )" );
+	nLen += format( MenuTexT[nLen], 355-nLen, "^n\y2. \wOzivenie: %s%i\w/\r%i", ( uITEMS[ZIVOT][id] != get_pcvar_num( uLIMIT[MAXZIVOT] ) ) ? "\d" : "\r", uITEMS[ZIVOT][id], get_pcvar_num( uLIMIT[MAXZIVOT] ) );
+	nLen += format( MenuTexT[nLen], 355-nLen, "^n^t^t\y+ Zivot ( +1 HP )" );
 	nLen += format( MenuTexT[nLen], 355-nLen, "^n\y3. \wVytrvalost: %s%i\w/\r%i", ( uITEMS[VYTRVALOST][id] != get_pcvar_num( uLIMIT[MAXVYTRVALOST] ) ) ? "\d" : "\r", uITEMS[VYTRVALOST][id], get_pcvar_num( uLIMIT[MAXVYTRVALOST] ) );
-	nLen += format( MenuTexT[nLen], 355-nLen, "^n^t^t\y+ Odolnost" );
+	nLen += format( MenuTexT[nLen], 355-nLen, "^n^t^t\y+ Odolnost ( -1.7 DMG )" );
 	nLen += format( MenuTexT[nLen], 355-nLen, "^n\y4. \wKondicia: %s%i\w/\r%i", ( uITEMS[RYCHLOST][id] != get_pcvar_num( uLIMIT[MAXRYCHLOST] ) ) ? "\d" : "\r", uITEMS[RYCHLOST][id], get_pcvar_num( uLIMIT[MAXRYCHLOST] ) );
-	nLen += format( MenuTexT[nLen], 355-nLen, "^n^t^t\y+ Rychlost" );
-	nLen += format( MenuTexT[nLen], 355-nLen, "^n\y5. \wVesta: %s%i\w/\r%i", ( uITEMS[VESTA][id] != get_pcvar_num( uLIMIT[MAXVESTA] ) ) ? "\d" : "\r", uITEMS[VESTA][id], get_pcvar_num( uLIMIT[MAXVESTA] ) );
-	nLen += format( MenuTexT[nLen], 355-nLen, "^n^t^t\y+ Brnenie" );
+	nLen += format( MenuTexT[nLen], 355-nLen, "^n^t^t\y+ Rychlost ( +1.3 Speed )" );
+	nLen += format( MenuTexT[nLen], 355-nLen, "^n\y5. \wBrnenie: %s%i\w/\r%i", ( uITEMS[VESTA][id] != get_pcvar_num( uLIMIT[MAXVESTA] ) ) ? "\d" : "\r", uITEMS[VESTA][id], get_pcvar_num( uLIMIT[MAXVESTA] ) );
+	nLen += format( MenuTexT[nLen], 355-nLen, "^n^t^t\y+ Vesta ( +2 AP )" );
 	nLen += format( MenuTexT[nLen], 355-nLen, "^n^n\y0. \wKoniec" );
 	
 	show_menu(id, UPG_MENU, MenuTexT, -1, "UpgradeMenuSelect" );
