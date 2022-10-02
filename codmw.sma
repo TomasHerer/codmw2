@@ -41,12 +41,10 @@
 
 #define VIP_ACCESS			ADMIN_LEVEL_H
 
-#define MOD_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<7)|(1<<9)
+#define MOD_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<9)
 #define UPG_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<9)
 #define SHOP_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<7)|(1<<8)|(1<<9)
 #define SHOP2_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<7)|(1<<8)|(1<<9)
-#define BANK_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<9)
-#define BANK2_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<9)
 #define HELP_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<9)
 
 #define OFFSET_FLASH_AMMO 		387
@@ -58,17 +56,6 @@
 new const item_class_name[] = "dm_item";
 
 new const fDataBase[] = "cod_databaza";
-//new const fDataBase2[] = "codset_databaza";
-	
-new b_peniaze[33] = 0;
-
-
-enum _:BANKVALUE
-{
-	MAXIMAL, MINIMAL, ADMIN
-};
-
-new fCVARS[BANKVALUE];
 
 new g_sync_hudmsg1,
 	g_sync_hudmsg2,
@@ -97,7 +84,7 @@ new bCVARS[BONUSVALUE];
 
 enum _:MODVALUE
 {
-	gMAXSPEED, gMINPLR_PLANT, gBPAMMO, gGAMENAME, gMAXLEVEL, gSTARTXP
+	gMAXSPEED, gMINPLR_PLANT, gBPAMMO, gGAMENAME, gMAXLEVEL, ADMIN
 };
 
 new mCVARS[MODVALUE];
@@ -135,7 +122,6 @@ new sMAXNUM[33][SHOPMAX];
 new bool:sGETITEM[33][SHOPGET];
 	
 new para_ent[33];
-new gidPlayer[33];
 
 new SzCtPlayerModel[4][] = { "gign", "gsg9", "sas", "urban" };
 new SzTePlayerModel[4][] = { "arctic", "guerilla", "leet", "terror" };
@@ -235,10 +221,6 @@ new gPlayerLevel[33] = 1;
 new gPlayerExperience[33];
 
 new gPlayerNewClass[33];
-
-new Forward_spawn;
-new Forward_levelup;
-new ForwardReturn;
 	
 new const SzLevelName[][] = 
 {
@@ -261,7 +243,7 @@ new const SzLevelName[][] =
 	"Elite Prime", "Global Elite", "Master", "Master Prime", "Global Master",	// 81-85
 	"Expert", "Expert Prime", "Global Expert", "Pro", "Pro Prime",			// 86-90
 	"Global Pro", "Legend", "Legend Prime", "Global Legend", "Creed",		// 91-95
-	"Creed Prime", "Global Creed", "Veteran", "Veteran Prime", "Global Veteran"			// 96-99
+	"Creed Prime", "Global Creed", "Veteran", "Veteran Prime", "Global Veteran", "King"			// 96-99
 };
 
 enum _:UPGRADE
@@ -489,6 +471,20 @@ new strName[191];
 new strText[191];
 new alive[11];
 
+new const experience_level[] =
+{
+	0, 200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000,		// 10
+	2400, 2800, 3200, 3600, 4000, 4400, 4800, 5200, 5600, 6000,		// 20
+	6400, 6800, 7200, 7600, 8000, 8400, 8800, 9200, 9600, 10000,		// 30
+	10400, 10800, 11200, 11600, 12000, 12400, 12800, 13200, 13600, 14000,	// 40
+	14500, 15000, 15500, 16000, 16500, 17000, 17500, 18000, 18500, 19000,	// 50
+	20000, 21000, 22000, 23000, 24000, 25000, 26000, 27000, 28000, 29000,	// 60
+	30000, 31000, 32000, 33000, 34000, 35000, 36000, 37000, 38000, 39000,	// 70
+	40000, 41000, 42000, 43000, 44000, 45000, 46000, 47000, 48000, 49000,	// 80
+	50000, 51000, 52000, 53000, 54000, 55000, 56000, 57000, 58000, 59000,	// 90
+	60000, 61000, 62000, 63000, 64000, 65000, 66000, 67000, 68000 , 70000, 72000		// 100
+};
+
 public plugin_precache( )
 {
 	for (new i = 0; i < sizeof(s_levelsound); i++)
@@ -562,18 +558,15 @@ public plugin_init()
 	register_touch( "weaponbox", "player", "Touch_WeaponBox" );
 	register_touch( "armoury_entity", "player", "Touch_WeaponBox" );
 	register_touch( "weapon_shield", "player", "Touch_WeaponBox" );
-		
-	Forward_levelup = CreateMultiForward( "forward_client_levelup", ET_IGNORE, FP_CELL, FP_CELL, FP_CELL );
-	Forward_spawn = CreateMultiForward( "forward_client_spawn", ET_IGNORE, FP_CELL , FP_CELL, FP_CELL );
 	
 	/*//////////////================= CALL OD DUTY CVARS =================\\\\\\\\\\\\\\\*/
 
 	mCVARS[gMAXSPEED] = register_cvar( "CODMOD_MAXSPEED",			"1600" );
-	mCVARS[gMAXLEVEL] = register_cvar( "CODMOD_MAX_LEVEL",			"100" );
-	mCVARS[gSTARTXP] = register_cvar( "CODMOD_START_XP",			"200" );
+	mCVARS[gMAXLEVEL] = register_cvar( "CODMOD_MAX_LEVEL",			"101" );
 	mCVARS[gMINPLR_PLANT] = register_cvar( "CODMOD_MINPLAYERS_PLANT",	"1" );
 	mCVARS[gBPAMMO] = register_cvar( "CODMOD_BPAMMO",			"1" );
 	mCVARS[gGAMENAME] = register_cvar( "CODMOD_GAMENAME", 			"Call Of Duty v5.0" );
+	mCVARS[ADMIN]= register_cvar( "CODMOD_ADMINACCESS",			"ADMIN_CVAR" );
 
 	uLIMIT[MAXINTELIGENCIA] = register_cvar( "CODMOD_UPGRADE_MAXINTELIGENCIA", "80" );
 	uLIMIT[MAXZIVOT] = register_cvar( "CODMOD_UPGRADE_MAXZIVOT", 		"80" );
@@ -582,14 +575,6 @@ public plugin_init()
 	uLIMIT[MAXVESTA] = register_cvar( "CODMOD_UPGRADE_MAXVESTA", 		"80" );
 	
 	/*////////////================= END CALL OD DUTY CVARS =================\\\\\\\\\\\\\*/
-	
-	/*//////////////================= BANKA CVARS =================\\\\\\\\\\\\\\\*/
-	
-	fCVARS[MAXIMAL]= register_cvar( "CODMOD_BANKA_MAXIMUM",			"100000" );	
-	fCVARS[MINIMAL]= register_cvar( "CODMOD_BANKA_MINIMUM",			"1" );	
-	fCVARS[ADMIN]= register_cvar( "CODMOD_ADMINACCESS",			"ADMIN_CVAR" );
-	
-	/*//////////////================= END BANKA CVARS =================\\\\\\\\\\\\\\\*/
 
 	/*//////////////////================= SHOP CVARS =================\\\\\\\\\\\\\\\\\\*/
 
@@ -726,34 +711,19 @@ public plugin_init()
 	register_clcmd( "radio3",		"Func_UseItem" );
 	register_clcmd( "coduseitem",		"Func_UseItem" );
 
-	register_clcmd( "say /banka",		"Cmd_BankMenu" );
-	register_clcmd( "say_team /banka",	"Cmd_BankMenu" );
-	register_clcmd( "say /ucet",		"Cmd_BankMenu" );
-	register_clcmd( "say_team /ucet",	"Cmd_BankMenu" );
-	
-	register_clcmd( "VYBRAT_PENIAZE", 	"client_remove_money" );
-	register_clcmd( "VLOZIT_PENIAZE", 	"client_add_money" );
-	register_clcmd( "POSLAT_PENIAZE", 	"player" );
-	
 	register_menucmd( register_menuid("ModMenuSelect"), MOD_MENU, "Cmd_ModMenu_Handler" );
 	register_menucmd( register_menuid("UpgradeMenuSelect"), UPG_MENU, "Cmd_UpgradeMenu_Handler" );
 	register_menucmd( register_menuid("ShopMenuSelect"), SHOP_MENU, "Cmd_ShopMenu_Handler" );
 	register_menucmd( register_menuid("Shop2MenuSelect"), SHOP2_MENU, "Cmd_Shop2Menu_Handler" );
-	register_menucmd( register_menuid("BankMenuSelect"), BANK_MENU, "Cmd_BankMenu_Handler" );
-	register_menucmd( register_menuid("BankChangeMenuSelect"), BANK2_MENU, "Cmd_BankChangeMenu_Handler" );
 	register_menucmd( register_menuid("HelpMenuSelect"), HELP_MENU, "Cmd_HelpMenu_Handler" );
 	
 	for( new i = 0;i < sizeof( SzBlockCommand ); i++ )
 		register_clcmd( SzBlockCommand[ i ], "CommandBlock" );
 	
-	register_concmd( "cod_additem", "Cmd_AdminSetPlayerItem", get_pcvar_num( fCVARS[ADMIN] ), "<nick> <item id>" );
+	register_concmd( "cod_additem", "Cmd_AdminSetPlayerItem", get_pcvar_num( mCVARS[ADMIN] ), "<nick> <item id>" );
 	
-	register_concmd( "cod_addxp", "Cmd_AdminAddPlayerExp", get_pcvar_num( fCVARS[ADMIN] ), "<nick> <number of add exp>" );
-	register_concmd( "cod_remxp", "Cmd_AdminRemovePlayerExp", get_pcvar_num( fCVARS[ADMIN] ), "<nick> <number of remove exp>" );
-
-	register_concmd( "codbank_addmoney", "admin_add_money", get_pcvar_num( fCVARS[ADMIN] ), "<nick> <money>" );
-
-	register_concmd( "codbank_remmoney", "admin_remove_money", get_pcvar_num( fCVARS[ADMIN] ), "<nick> <money>" );
+	register_concmd( "cod_addxp", "Cmd_AdminAddPlayerExp", get_pcvar_num( mCVARS[ADMIN] ), "<nick> <number of add exp>" );
+	register_concmd( "cod_remxp", "Cmd_AdminRemovePlayerExp", get_pcvar_num( mCVARS[ADMIN] ), "<nick> <number of remove exp>" );
 		
 	register_message (get_user_msgid ("SayText"), "avoid_duplicated");
 	
@@ -922,9 +892,7 @@ public Ham_PlayerSpawn( id )
 {
 	if ( !is_user_alive(id) || !is_user_connected(id) )
 		return PLUGIN_CONTINUE;
-		
-	ExecuteForward( Forward_spawn, ForwardReturn, id, gPlayerLevel[ id ], gPlayerExperience[id] );
-	
+
 	sMAXNUM[id][sHEALTH] = 0;
 	sMAXNUM[id][sHEALTH2] = 0;
 	sMAXNUM[id][sFULLEQUIP] = 0;
@@ -1875,13 +1843,12 @@ public Cmd_ModMenu(id)
 	new nLen = format( MenuTexT, 255, "\rMod Menu:" );
 	nLen += format( MenuTexT[nLen], 255-nLen, "^n\y1. \wVybrat Triedu" );
 	nLen += format( MenuTexT[nLen], 255-nLen, "^n\y2. \wObchod" );
-	nLen += format( MenuTexT[nLen], 255-nLen, "^n\y3. \wBanka" );
-	nLen += format( MenuTexT[nLen], 255-nLen, "^n\y4. \wUpgrade" );
-	nLen += format( MenuTexT[nLen], 255-nLen, "^n^n\y5. \wPomoc" );
-	nLen += format( MenuTexT[nLen], 255-nLen, "^n\y6. \wNastavenia" );
-	nLen += format( MenuTexT[nLen], 255-nLen, "^n\y7. \yVIP Menu" );
+	nLen += format( MenuTexT[nLen], 255-nLen, "^n\y3. \wUpgrade" );
+	nLen += format( MenuTexT[nLen], 255-nLen, "^n^n\y4. \wPomoc" );
+	nLen += format( MenuTexT[nLen], 255-nLen, "^n\y5. \wNastavenia" );
+	nLen += format( MenuTexT[nLen], 255-nLen, "^n\y6. \yVIP Menu" );
 	
-	nLen += format( MenuTexT[nLen], 255-nLen, "^n^n\y8. \w%s", ( cs_get_user_team(id) != CS_TEAM_SPECTATOR ) ? "Prejst do spectu" : "Vstupit do hry" );
+	nLen += format( MenuTexT[nLen], 255-nLen, "^n^n\y7. \w%s", ( cs_get_user_team(id) != CS_TEAM_SPECTATOR ) ? "Prejst do spectu" : "Vstupit do hry" );
 	nLen += format( MenuTexT[nLen], 255-nLen, "^n\y0. \wKoniec" );
 	
 	show_menu(id, MOD_MENU, MenuTexT, -1, "ModMenuSelect" );
@@ -1894,18 +1861,17 @@ public Cmd_ModMenu_Handler(id, key)
 	{
 		case 0: Cmd_ClassMenu(id);
 		case 1: Cmd_ShopMenu(id);
-		case 2: Cmd_BankMenu(id);
-		case 3:
+		case 2:
 		{
 			if ( uITEMS[POINTS][id] > 0 )
 			{
 				Cmd_UpgradeMenu(id);
 			} else ColorMsg( id, "^1[^4%s^1] Nedostatok bodov.", PLUGIN );
 		}
-		case 4: Cmd_HelpMenu(id);
-		case 5: client_cmd( id, "codsetting" );
-		case 6: client_cmd(id, "say /vip");
-		case 7: Cmd_Spect(id);
+		case 3: Cmd_HelpMenu(id);
+		case 4: client_cmd( id, "codsetting" );
+		case 5: client_cmd(id, "say /vip");
+		case 6: Cmd_Spect(id);
 		case 9: return PLUGIN_HANDLED;
 	}
 	return PLUGIN_HANDLED;
@@ -3162,335 +3128,6 @@ public Func_RemoveUserVip( id )
 	remove_user_flags( id, read_flags("t"));
 }
 
-public Cmd_BankMenu(id)
-{	
-	new BankTexT[256];
-	
-	new nLen = format( BankTexT, 255, "\rBanka^n\w- Zostatok: \r%i\y$ \w^n- Automaticke ukladanie penazi", b_peniaze[id] );
-	nLen += format( BankTexT[nLen], 255-nLen, "^n\y1. \wVybrat Peniaze" );
-	nLen += format( BankTexT[nLen], 255-nLen, "^n\y2. \wVlozit Peniaze" );
-	nLen += format( BankTexT[nLen], 255-nLen, "^n\y3. \wPoslat Peniaze" );
-	nLen += format( BankTexT[nLen], 255-nLen, "^n\y4. \wZmenaren Penazi \r(za BODY)" );
-
-	nLen += format( BankTexT[nLen], 255-nLen, "^n^n\y0.\w Koniec" );
-	
-	show_menu(id, BANK_MENU, BankTexT, -1, "BankMenuSelect" );
-}
-
-public Cmd_BankMenu_Handler(id, key)
-{
-	switch( key )
-	{
-		case 0:
-		{
-			if ( b_peniaze[id] <= 0 )
-			{
-				ColorMsg( id, "^1[^4%s^1] Nemas dostatok prostriedkov na ucte.", BANKTAG );
-				return PLUGIN_HANDLED;
-			}
-			client_cmd( id, "messagemode VYBRAT_PENIAZE" );
-		}
-		case 1:
-		{
-			if ( b_peniaze[id] == 100000 )
-			{
-				ColorMsg( id, "^1[^4%s^1] Maximalny pocet penazi v banke moze byt^4 100000 $^3.", BANKTAG );
-				return PLUGIN_HANDLED;
-			}
-			client_cmd( id, "messagemode VLOZIT_PENIAZE" );
-		}
-		case 2: Cmd_TransferMenu( id );
-		case 3:
-		{
-			if ( gPlayerLevel[id] == get_pcvar_num( mCVARS[gMAXLEVEL] )  )
-			{
-				ColorMsg( id, "^1[^4%s^1] Dosiahnuty maximalny level.", BANKTAG );
-				return PLUGIN_HANDLED;
-			}
-			Cmd_BankChangeMenu( id );
-		}
-		case 9: return PLUGIN_HANDLED;
-	}
-	return PLUGIN_HANDLED;
-}
-
-public client_remove_money(id)
-{
-	new sprava[300];
-	read_args(sprava, charsmax(sprava));
-
-	remove_quotes(sprava);
-
-	if( !is_str_num(sprava) || equal(sprava, "") )
-		return PLUGIN_HANDLED;
-
-	message_remove_money(id, sprava);
-	return PLUGIN_CONTINUE;
-}
-
-public client_add_money(id)
-{
-	new sprava[300];
-	read_args(sprava, charsmax(sprava));
-
-	remove_quotes(sprava);
-
-	if( !is_str_num(sprava) || equal(sprava, "") )
-		return PLUGIN_HANDLED;
-
-	message_add_money(id, sprava);
-	return PLUGIN_CONTINUE;
-}
-
-public message_remove_money(id, sprava[])
-{
-	new bm_hodnota = str_to_num(sprava);
-	if( bm_hodnota < get_pcvar_num( fCVARS[MINIMAL] ) )
-	{
-		ColorMsg(id, "^1[^4%s^1] Dosiahol si minimalnu hodnotu:^4 %i $^1.", BANKTAG, get_pcvar_num( fCVARS[MINIMAL] ));
-	}
-	else
-	{
-		if( cs_get_user_money(id) > get_pcvar_num( fCVARS[MAXIMAL] ) )
-			return PLUGIN_CONTINUE;
-	
-		cs_set_user_money(id, cs_get_user_money(id) + bm_hodnota);
-		b_peniaze[id] -= bm_hodnota;
-	
-		ColorMsg(id, "^1[^4%s^1] Vybral si z banky :^4 %i $^1.", BANKTAG, bm_hodnota);
-	}
-	return PLUGIN_HANDLED;
-}
-
-public message_add_money(id, sprava[]) 
-{
-	new bp_hodnota = str_to_num(sprava);
-
-	if( bp_hodnota > get_pcvar_num( fCVARS[MAXIMAL] ) )
-	{
-		ColorMsg(id, "^1[^4%s^1] Dosiahol si maximalnu hodnotu:^4 %i $^1.", BANKTAG, get_pcvar_num( fCVARS[MAXIMAL] ));
-	}
-	else
-	{
-		if( bp_hodnota > cs_get_user_money(id) )
-			return PLUGIN_CONTINUE;
-
-		cs_set_user_money(id, cs_get_user_money(id) - bp_hodnota);
-		b_peniaze[id] += bp_hodnota;
-
-		ColorMsg(id, "^1[^4%s^1] Vlozili si do banky:^4 %i $^1.", BANKTAG, bp_hodnota);
-	}
-	return PLUGIN_HANDLED;
-}
-
-public Cmd_TransferMenu(id)
-{
-	static opcion[64];
-	if(is_user_alive(id))
-	{
-		formatex(opcion, charsmax(opcion),"Poslat Peniaze:");
-		new iMenu = menu_create(opcion, "Cmd_TransferMenu_Handler");
-		
-		new players[32], pnum, tempid;
-		new szName[32], szTempid[10];
-		
-		get_players(players, pnum, "a");
-		
-		for( new i; i<pnum; i++ )
-		{
-			tempid = players[i];
-			
-			get_user_name(tempid, szName, 31);
-			num_to_str(tempid, szTempid, 9);
-			
-			formatex(opcion, charsmax(opcion), "\w%s\y - \d[\y%d\r $\d]", szName, b_peniaze[ tempid ]);
-			menu_additem(iMenu, opcion, szTempid, 0);
-		}
-		menu_display(id, iMenu);
-	}
-	else
-	{
-		client_print(id, print_center, "Nie si nazive!!!");
-	}
-	return PLUGIN_HANDLED;
-}
-
-public Cmd_TransferMenu_Handler(id, menu, item)
-{
-	if( item == MENU_EXIT )
-	{
-		menu_destroy(menu);
-		return PLUGIN_HANDLED;
-	}
-	
-	new Data[6], Name[64];
-	new Access, Callback;
-	menu_item_getinfo(menu, item, Access, Data,5, Name, 63, Callback);
-	
-	new tempid = str_to_num(Data);
-	
-	gidPlayer[id] = tempid;
-	client_cmd(id, "messagemode POSLAT_PENIAZE");
-	menu_destroy(menu);
-	return PLUGIN_HANDLED;
-}
-
-public player(id)
-{
-	new say[300];
-	read_args(say, charsmax(say));
-	
-	remove_quotes(say);
-	
-	if(!is_str_num(say) || equal(say, ""))
-		return PLUGIN_HANDLED;
-	
-	cmd_transfer_money(id, say);
-	
-	return PLUGIN_CONTINUE;
-}
-
-public cmd_transfer_money(id, say[])
-{
-	new amount = str_to_num(say);
-	new victim = gidPlayer[id];
-	
-	if(victim != id)
-	{
-		if(victim > 0)
-		{
-			new player_name[32];
-			new victim_name[32];
-			get_user_name(id, player_name, 31);
-			get_user_name(victim, victim_name, 31);
-			
-			if(amount >= get_pcvar_num( fCVARS[MAXIMAL] ) )
-			{
-				ColorMsg(id, "^1[^4%s^1] Prekrocil si limit: ^4%d ^x01 a preto si nemohol poslat nic!", BANKTAG, get_pcvar_num( fCVARS[MAXIMAL] ));
-			}
-			else
-			{
-				if(is_user_alive(id))
-				{
-					if(b_peniaze[ id ] >= amount)
-					{
-						b_peniaze[ victim ] += amount;
-						b_peniaze[ id ] -= amount;
-						ColorMsg(id, "^1[^4%s^1] Poslal: ^3%s^4 |^3 %d^1$^4 |^1 Hracovy: ^3%s", BANKTAG, player_name, amount, victim_name);
-						ColorMsg(victim, "^1[^4%s^1] Hrac: ^3%s^4 ti poslal %d^1$^4.", BANKTAG, player_name, amount);
-					}
-					else
-					{
-						ColorMsg(id, "^1[^4%s^1] Nemas dostatok prostriedkov na ucte aby si mohol poslat body.", BANKTAG);
-					}
-				}
-				else
-				{
-					ColorMsg(id, "^1[^4%s^1] Nemozes poslat nic hracovi ^4%s ^1pretoze niesi nazive", BANKTAG, victim_name);
-				}
-			}
-		}
-	}
-	else
-	{
-		ColorMsg(id, "^1[^4%s^1] Nemozes si sam poslat peniaze.", BANKTAG);
-	}
-	return PLUGIN_HANDLED;
-}
-
-
-public Cmd_BankChangeMenu(id)
-{	
-	new Bank2TexT[256];
-	
-	new nLen = format( Bank2TexT, 255, "\rZmenaren^n\w- Zostatok: \r%i\y$", b_peniaze[id] );
-	nLen += format( Bank2TexT[nLen], 255-nLen, "^n\y1. \w10000\y$\w za [\r1 BOD\w]" );
-	nLen += format( Bank2TexT[nLen], 255-nLen, "^n\y2. \w20000\y$\w za [\r2 BODY\w]" );
-	nLen += format( Bank2TexT[nLen], 255-nLen, "^n\y3. \w30000\y$\w za [\r3 BODY\w]" );
-	nLen += format( Bank2TexT[nLen], 255-nLen, "^n\y4. \w40000\y$\w za [\r4 BODY\w]" );
-	nLen += format( Bank2TexT[nLen], 255-nLen, "^n\y5. \w50000\y$\w za [\r5 BODOV\w]" );
-	nLen += format( Bank2TexT[nLen], 255-nLen, "^n\y6. \w60000\y$\w za [\r6 BODOV\w]" );
-
-	nLen += format( Bank2TexT[nLen], 511-nLen, "^n^n\y0.\w Koniec" );
-	
-	show_menu(id, BANK2_MENU, Bank2TexT, -1, "BankChangeMenuSelect" );
-}
-
-public Cmd_BankChangeMenu_Handler(id, key)
-{
-	switch( key )
-	{
-		case 0:
-		{
-			if ( b_peniaze[id] < 10000 )
-			{
-				ColorMsg( id, "^1[^4%s^1] Nemas dostatok prostriedkov na ucte.", BANKTAG );
-				return PLUGIN_HANDLED;
-			}
-			b_peniaze[id] -= 10000;
-			uITEMS[POINTS][id]++;
-			ColorMsg( id, "^1[^4%s^1] Uspesne si zamenil^4 10000 $^1 za^3 1 BOD^1.", BANKTAG );
-		}
-		case 1:
-		{
-			if ( b_peniaze[id] < 20000 )
-			{
-				ColorMsg( id, "^1[^4%s^1] Nemas dostatok prostriedkov na ucte.", BANKTAG );
-				return PLUGIN_HANDLED;
-			}
-			b_peniaze[id] -= 20000;
-			uITEMS[POINTS][id] += 2;
-			ColorMsg( id, "^1[^4%s^1] Uspesne si zamenil^4 20000 $^1 za^3 2 BODY^1.", BANKTAG );
-		}
-		case 2:
-		{
-			if ( b_peniaze[id] < 30000 )
-			{
-				ColorMsg( id, "^1[^4%s^1] Nemas dostatok prostriedkov na ucte.", BANKTAG );
-				return PLUGIN_HANDLED;
-			}
-			b_peniaze[id] -= 30000;
-			uITEMS[POINTS][id] += 3;
-			ColorMsg( id, "^1[^4%s^1] Uspesne si zamenil^4 30000 $^1 za^3 3 BODY^1.", BANKTAG );
-		}
-		case 3:
-		{
-			if ( b_peniaze[id] < 40000 )
-			{
-				ColorMsg( id, "^1[^4%s^1] Nemas dostatok prostriedkov na ucte.", BANKTAG );
-				return PLUGIN_HANDLED;
-			}
-			b_peniaze[id] -= 40000;
-			uITEMS[POINTS][id] += 4;
-			ColorMsg( id, "^1[^4%s^1] Uspesne si zamenil^4 40000 $^1 za^3 4 BODY^1.", BANKTAG );
-		}
-		case 4:
-		{
-			if ( b_peniaze[id] < 50000 )
-			{
-				ColorMsg( id, "^1[^4%s^1] Nemas dostatok prostriedkov na ucte.", BANKTAG );
-				return PLUGIN_HANDLED;
-			}
-			b_peniaze[id] -= 50000;
-			uITEMS[POINTS][id] += 5;
-			ColorMsg( id, "^1[^4%s^1] Uspesne si zamenil^4 50000 $^1 za^3 5 BODOV^1.", BANKTAG );
-		}
-		case 5:
-		{
-			if ( b_peniaze[id] < 60000 )
-			{
-				ColorMsg( id, "^1[^4%s^1] Nemas dostatok prostriedkov na ucte.", BANKTAG );
-				return PLUGIN_HANDLED;
-			}
-			b_peniaze[id] -= 60000;
-			uITEMS[POINTS][id] += 6;
-			ColorMsg( id, "^1[^4%s^1] Uspesne si zamenil^4 60000 $^1 za^3 6 BODOV^1.", BANKTAG );
-		}
-		case 9: return PLUGIN_HANDLED;
-	}
-	return PLUGIN_HANDLED;
-}
-
 public client_PreThink(id)
 {
 	if (!is_user_alive(id) || !sGETITEM[id][bPARACHUTE]) return;
@@ -3732,7 +3369,7 @@ public SaveData(id)
 	new fkey[84];
 	new fdata[456];
 	format(fkey,83,"%s-%i-codmw",steamid, gPlayerClass[ id ]);
-	format(fdata,455,"%i#%i#%i#%i#%i#%i#%i#%i", gPlayerExperience[ id ], gPlayerLevel[ id ], b_peniaze[ id ], uITEMS[ INTELIGENCIA ][ id ], uITEMS[ ZIVOT ][ id ], uITEMS[ VYTRVALOST ][ id ], uITEMS[ RYCHLOST ][ id ], uITEMS[ VESTA ][ id ] );
+	format(fdata,455,"%i#%i#%i#%i#%i#%i#%i", gPlayerExperience[ id ], gPlayerLevel[ id ], uITEMS[ INTELIGENCIA ][ id ], uITEMS[ ZIVOT ][ id ], uITEMS[ VYTRVALOST ][ id ], uITEMS[ RYCHLOST ][ id ], uITEMS[ VESTA ][ id ] );
 
 	fvault_set_data( fDataBase, fkey, fdata);
 }
@@ -3744,18 +3381,17 @@ public LoadData(id, class)
 	new fkey[84];
 	new fdata[456];
 	format(fkey,83,"%s-%i-codmw", steamid, class);
-	format(fdata,455,"%i#%i#%i#%i#%i#%i#%i#%i", gPlayerExperience[ id ], gPlayerLevel[ id ], b_peniaze[ id ], uITEMS[ INTELIGENCIA ][ id ], uITEMS[ ZIVOT ][ id ], uITEMS[ VYTRVALOST ][ id ], uITEMS[ RYCHLOST ][ id ], uITEMS[ VESTA ][ id ] );
+	format(fdata,455,"%i#%i#%i#%i#%i#%i#%i", gPlayerExperience[ id ], gPlayerLevel[ id ], uITEMS[ INTELIGENCIA ][ id ], uITEMS[ ZIVOT ][ id ], uITEMS[ VYTRVALOST ][ id ], uITEMS[ RYCHLOST ][ id ], uITEMS[ VESTA ][ id ] );
 	fvault_get_data( fDataBase, fkey, fdata, 455);
 	
 	replace_all(fdata, 455, "#", " ");
 	
-	new fXP[ 32 ], fLevel[ 32 ], fBank[ 32 ], fInteligencia[ 32 ], fZivot[ 32 ], fVytrvalost[ 32 ], fRychlost[ 32 ], fVesta[ 32 ];
+	new fXP[ 32 ], fLevel[ 32 ], fInteligencia[ 32 ], fZivot[ 32 ], fVytrvalost[ 32 ], fRychlost[ 32 ], fVesta[ 32 ];
 	
-	parse(fdata, fXP, 31, fLevel, 31, fBank, 31, fInteligencia, 31, fZivot, 31, fVytrvalost, 31, fRychlost, 31, fVesta, 31 );
+	parse(fdata, fXP, 31, fLevel, 31, fInteligencia, 31, fZivot, 31, fVytrvalost, 31, fRychlost, 31, fVesta, 31 );
 	
 	gPlayerExperience[id] = str_to_num( fXP );
 	gPlayerLevel[id] = str_to_num( fLevel ) > 0 ? str_to_num( fLevel ) : 1;
-	b_peniaze[id] = str_to_num( fBank );
 	
 	uITEMS[ INTELIGENCIA ][ id ] = str_to_num( fInteligencia );
 	uITEMS[ ZIVOT ][ id ] = str_to_num( fZivot );
@@ -3935,22 +3571,9 @@ public Func_PlayerRespawn(id)
 
 public Func_CheckPlayerLevel(id)
 {    
-	if( gPlayerLevel[id] == get_pcvar_num( mCVARS[gMAXLEVEL] ) )
+	if ( gPlayerLevel[id] < get_pcvar_num( mCVARS[gMAXLEVEL] ) )
 	{
-		return;
-	}
-	else
-	{ 
-		new level = gPlayerLevel[id] > 0 ? gPlayerLevel[id] : 1;
-	
-		new xp = level * get_pcvar_num( mCVARS[gSTARTXP] );
-		
-		if( gPlayerLevel[id] > 0 )
-		{
-			xp +=  ( xp * 4 / 2 );
-		}
-		
-		while( gPlayerExperience[id] >= xp )
+		while( gPlayerExperience[id] >= experience_level[gPlayerLevel[id]] )
 		{
 			gPlayerLevel[id]++;
 			set_hudmessage(60, 200, 25, -1.0, 0.25, 1, 1.0, 2.0, 0.1, 0.2, 2);
@@ -3963,34 +3586,19 @@ public Func_CheckPlayerLevel(id)
 				case 0: client_cmd(id, "spk sound/%s", s_levelsound[0]);
 				case 1: client_cmd(id, "spk sound/%s", s_levelsound[1]);
 			}
-			
-			ExecuteForward( Forward_levelup, ForwardReturn, id, gPlayerLevel[id], gPlayerExperience[id] );
-			SaveData(id);
-			Func_CheckPlayerLevel(id);
-			
-			uITEMS[POINTS][id] = (gPlayerLevel[id]-1)*4-uITEMS[INTELIGENCIA][id]-uITEMS[ZIVOT][id]-uITEMS[VYTRVALOST][id]-uITEMS[RYCHLOST][id]-uITEMS[VESTA][id];
-			
-			break;
 		}
-	}
+		
+		uITEMS[POINTS][id] = (gPlayerLevel[id]-1)*4-uITEMS[INTELIGENCIA][id]-uITEMS[ZIVOT][id]-uITEMS[VYTRVALOST][id]-uITEMS[RYCHLOST][id]-uITEMS[VESTA][id];
+	} else return 0;
+	SaveData(id);
+	return PLUGIN_CONTINUE;
 }
-
 
 public ShowInformation(id) 
 {
 	id -= TASK_SHOW_INFORMATION;
 	
 	set_task(0.1, "ShowInformation", id+TASK_SHOW_INFORMATION);
-	
-	
-	new level = gPlayerLevel[id] > 0 ? gPlayerLevel[id] : 1;
-	
-	new xp = level * get_pcvar_num( mCVARS[gSTARTXP] );
-		
-	if( gPlayerLevel[id] > 0 )
-	{
-		xp +=  ( xp * 4 / 2 );
-	}
 	
 	if ( !is_user_alive(id) )
 	{
@@ -4002,15 +3610,6 @@ public ShowInformation(id)
 		new targetname[33];
 		get_user_name(target, targetname, 32);
 		
-		new level = gPlayerLevel[target] > 0 ? gPlayerLevel[target] : 1;
-			
-		new xp = level * get_pcvar_num( mCVARS[gSTARTXP] );
-				
-		if( gPlayerLevel[target] > 0 )
-		{
-			xp +=  ( xp * 4 / 2 );
-		}
-					
 		if( gPlayerLevel[target] == get_pcvar_num( mCVARS[gMAXLEVEL] ) )
 		{
 			set_hudmessage(0, 255, 42, 0.02, 0.18, 0, 0.0, 0.3, 0.0, 0.0);
@@ -4018,7 +3617,7 @@ public ShowInformation(id)
 		} else 	
 		{
 			set_hudmessage(0, 255, 42, 0.02, 0.18, 0, 0.0, 0.3, 0.0, 0.0);
-			ShowSyncHudMsg(id, g_sync_hudmsg2, "| Meno: %s^n| Trieda: %s^n| Skusenosti: %i / %i^n| Level(%i): %s^n| Item: %s", targetname, SzClassName[gPlayerClass[target]], gPlayerExperience[target], xp, gPlayerLevel[target], SzLevelName[gPlayerLevel[target]], SzItemName[gPlayerItem[target][0]] );
+			ShowSyncHudMsg(id, g_sync_hudmsg2, "| Meno: %s^n| Trieda: %s^n| Skusenosti: %i / %i^n| Level(%i): %s^n| Item: %s", targetname, SzClassName[gPlayerClass[target]], gPlayerExperience[target], experience_level[gPlayerLevel[target]], gPlayerLevel[target], SzLevelName[gPlayerLevel[target]], SzItemName[gPlayerItem[target][0]] );
 		}
 		
 		return PLUGIN_CONTINUE;
@@ -4030,7 +3629,7 @@ public ShowInformation(id)
 	} else 	
 	{
 		set_hudmessage(0, 255, 42, 0.02, 0.18, 0, 0.0, 0.3, 0.0, 0.0);
-		ShowSyncHudMsg(id, g_sync_hudmsg1, "| Trieda: %s^n| Skusenosti: %i / %i^n| Level(%i): %s^n| Item: %s", SzClassName[gPlayerClass[id]], gPlayerExperience[id], xp, gPlayerLevel[id], SzLevelName[gPlayerLevel[id]], SzItemName[gPlayerItem[id][0]]);
+		ShowSyncHudMsg(id, g_sync_hudmsg1, "| Trieda: %s^n| Skusenosti: %i / %i^n| Level(%i): %s^n| Item: %s", SzClassName[gPlayerClass[id]], gPlayerExperience[id], experience_level[gPlayerLevel[id]], gPlayerLevel[id], SzLevelName[gPlayerLevel[id]], SzItemName[gPlayerItem[id][0]]);
 	}
 	
 	if ( get_user_health(id) > 255 )
@@ -4300,64 +3899,6 @@ public Cmd_ResetPlayerScore(id)
 	return PLUGIN_HANDLED;
 }
 
-public admin_add_money(id, level, cid)
-{
-	if ( !cmd_access(id, level, cid, 3) )
-		return PLUGIN_HANDLED;
-
-	new arg1[33];
-	new arg2[10];
-
-	read_argv(1, arg1, 32);
-	read_argv(2, arg2, 9);
-
-	new hrac = cmd_target(id, arg1, 0);
-	remove_quotes(arg2);
-
-	new peniaze = str_to_num(arg2);
-	
-	new nick_hraca[33];
-	new nick_admin[33];
-	get_user_name(hrac, nick_hraca, 32);
-	get_user_name(id, nick_admin, 32);
-
-	b_peniaze[hrac] += peniaze;
-	client_print(id, print_console, "[%s] Pridaô si do banky hracovi %s [+ %i $]", BANKTAG, nick_hraca, peniaze);
-	ColorMsg(hrac, "^1[^4%s^1] Dostal si^4 + %i $^1 od admina :^3 %s", BANKTAG, peniaze, nick_admin);
-	return PLUGIN_HANDLED;
-}
-
-public admin_remove_money(id, level, cid)
-{
-	if ( !cmd_access(id, level, cid, 3) )
-		return PLUGIN_HANDLED;
-
-	new arg1[33];
-	new arg2[10];
-
-	read_argv(1, arg1, 32);
-	read_argv(2, arg2, 9);
-
-	new hrac = cmd_target(id, arg1, 0);
-	remove_quotes(arg2);
-
-	new peniaze = str_to_num(arg2);
-
-	if ( b_peniaze[hrac] - peniaze < get_pcvar_num( fCVARS[MINIMAL] ) )
-	{
-		client_print(id, print_console, "[%s] Dosiahol si minimalnu hodnotu: %i", BANKTAG, get_pcvar_num( fCVARS[MINIMAL] ));
-	}
-	else
-	{
-		new nick_hraca[33];
-		get_user_name(hrac, nick_hraca, 32);
-
-		b_peniaze[hrac] -= peniaze;
-		client_print(id, print_console, "[%s] Odobral si z banky hracovi %s [- %i $]", BANKTAG, nick_hraca, peniaze);
-	}
-	return PLUGIN_HANDLED;
-}
-
 public Cmd_AdminSetPlayerItem(id, level, cid)
 {
 	if ( !cmd_access(id,level,cid,3) )
@@ -4408,7 +3949,7 @@ public Cmd_AdminAddPlayerExp(id, level, cid)
 	remove_quotes(arg2);
 	new exp = str_to_num(arg2);
 	
-	if ( gPlayerExperience[hrac] + exp > 60000 ) 
+	if ( gPlayerExperience[hrac] + exp > 72000 ) 
 	{
 		client_print(id, print_console, "[COD:MW] Mas maximum XP (XP + Hodnota > )" );
 	}
