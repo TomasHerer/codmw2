@@ -1,3 +1,11 @@
+/****************************************
+********* UPDATE COMMING SOON ***********
+*****************************************
+** -> Achievement
+** -> Nové postavy s novými zbraňami ( No/Vip )
+** -> Nové itemy do shopu ( First idea -> Bazooka )
+*/
+
 #include < amxmodx >
 #include < amxmisc >
 #include < cstrike >
@@ -18,7 +26,6 @@
 #define SHOPNAME2			"Tombola"
 #define SHOPNAME3			"Extra Tombola"
 #define BOXTAG				"DropBox"
-#define BANKTAG				"Banka"
 
 #define STANDARD_PLAYER_SPEED		250.0
 
@@ -34,7 +41,7 @@
 #define MIN_ONLINE_PLAYERS		2
 
 #define MAX_DISTANCE_AIDKIT		300
-#define MAX_HUDMESSAGES			7
+#define MAX_HUDMESSAGES			8
 
 #define HIDE_MONEY			(1<<5)
 #define INVALID_WEAPONS			((1<<CSW_KNIFE)|(1<<CSW_HEGRENADE)|(1<<CSW_FLASHBANG)|(1<<CSW_SMOKEGRENADE)|(1<<CSW_C4))
@@ -42,7 +49,7 @@
 #define VIP_ACCESS			ADMIN_LEVEL_H
 
 #define MOD_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<9)
-#define UPG_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<9)
+#define UPG_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<7)|(1<<9)
 #define SHOP_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<7)|(1<<8)|(1<<9)
 #define SHOP2_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<7)|(1<<8)|(1<<9)
 #define HELP_MENU (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<9)
@@ -56,13 +63,15 @@
 new const item_class_name[] = "dm_item";
 
 new const fDataBase[] = "cod_databaza";
+new const fDataBase2[] = "cod_achievements";
 
 new g_sync_hudmsg1,
 	g_sync_hudmsg2,
 	g_sync_hudmsg3,
 	g_sync_hudmsg4,
 	g_sync_hudmsg5,
-	g_sync_hudmsg6;
+	g_sync_hudmsg6,
+	g_sync_hudmsg7;
 new g_msg_screenfade;
 new g_iScoreInfo;
 
@@ -217,7 +226,7 @@ new const SzItemPopis[][] =
 
 new g_szAuthID[33][34];
 new gPlayerClass[33];
-new gPlayerLevel[33] = 1;
+new gPlayerLevel[33];
 new gPlayerExperience[33];
 
 new gPlayerNewClass[33];
@@ -248,7 +257,7 @@ new const SzLevelName[][] =
 
 enum _:UPGRADE
 {
-	POINTS, INTELIGENCIA, ZIVOT, OZIVENIE, VYTRVALOST, RYCHLOST, VESTA, KEVLAR
+	POINTS, INTELIGENCIA, ZIVOT, OZIVENIE, VYTRVALOST, RYCHLOST, VESTA, KEVLAR, INTERVAL, INTERVAL2
 };
 
 enum _:UPGRADE2
@@ -258,12 +267,13 @@ enum _:UPGRADE2
 
 enum _:UPGRADEVALUE
 {
-	MAXINTELIGENCIA, MAXZIVOT, MAXVYTRVALOST, MAXRYCHLOST, MAXVESTA
+	MAXINTELIGENCIA, MAXZIVOT, MAXVYTRVALOST, MAXRYCHLOST, MAXVESTA, MAXINTERVAL
 }
 
 new uITEMS[UPGRADE][33];
 new Float: ufITEMS[UPGRADE2][33];
 new uLIMIT[UPGRADEVALUE];
+new g_iIntervalItemu[33];
 
 enum 
 { 
@@ -471,19 +481,15 @@ new strName[191];
 new strText[191];
 new alive[11];
 
-new const experience_level[] =
-{
-	0, 200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000,		// 10
-	2400, 2800, 3200, 3600, 4000, 4400, 4800, 5200, 5600, 6000,		// 20
-	6400, 6800, 7200, 7600, 8000, 8400, 8800, 9200, 9600, 10000,		// 30
-	10400, 10800, 11200, 11600, 12000, 12400, 12800, 13200, 13600, 14000,	// 40
-	14500, 15000, 15500, 16000, 16500, 17000, 17500, 18000, 18500, 19000,	// 50
-	20000, 21000, 22000, 23000, 24000, 25000, 26000, 27000, 28000, 29000,	// 60
-	30000, 31000, 32000, 33000, 34000, 35000, 36000, 37000, 38000, 39000,	// 70
-	40000, 41000, 42000, 43000, 44000, 45000, 46000, 47000, 48000, 49000,	// 80
-	50000, 51000, 52000, 53000, 54000, 55000, 56000, 57000, 58000, 59000,	// 90
-	60000, 61000, 62000, 63000, 64000, 65000, 66000, 67000, 68000 , 70000, 72000		// 100
+/* ACHIEVEMENTY */ 
+
+enum _:ARCHIVE
+{ 
+	ACH_NORMALKILL, ACH_HSKILL, ACH_KNIFEKILL, ACH_HEKILL, ACH_DROPITEM, ACH_GIVEITEM,
+	ACH_LEVELUP, ACH_UPGRADE, ACH_DROPBOX, ACH_MAX
 };
+
+new gACHIEVEMENT[33][ARCHIVE];
 
 public plugin_precache( )
 {
@@ -562,17 +568,18 @@ public plugin_init()
 	/*//////////////================= CALL OD DUTY CVARS =================\\\\\\\\\\\\\\\*/
 
 	mCVARS[gMAXSPEED] = register_cvar( "CODMOD_MAXSPEED",			"1600" );
-	mCVARS[gMAXLEVEL] = register_cvar( "CODMOD_MAX_LEVEL",			"101" );
+	mCVARS[gMAXLEVEL] = register_cvar( "CODMOD_MAX_LEVEL",			"100" );
 	mCVARS[gMINPLR_PLANT] = register_cvar( "CODMOD_MINPLAYERS_PLANT",	"6" );
 	mCVARS[gBPAMMO] = register_cvar( "CODMOD_BPAMMO",			"1" );
 	mCVARS[gGAMENAME] = register_cvar( "CODMOD_GAMENAME", 			"Call Of Duty v5.0" );
 	mCVARS[ADMIN]= register_cvar( "CODMOD_ADMINACCESS",			"ADMIN_CVAR" );
 
-	uLIMIT[MAXINTELIGENCIA] = register_cvar( "CODMOD_UPGRADE_MAXINTELIGENCIA", "80" );
-	uLIMIT[MAXZIVOT] = register_cvar( "CODMOD_UPGRADE_MAXZIVOT", 		"80" );
-	uLIMIT[MAXVYTRVALOST] = register_cvar( "CODMOD_UPGRADE_MAXVYTRVALOST", 	"80" );
-	uLIMIT[MAXRYCHLOST] = register_cvar( "CODMOD_UPGRADE_MAXRYCHLOST", 	"80" );
-	uLIMIT[MAXVESTA] = register_cvar( "CODMOD_UPGRADE_MAXVESTA", 		"80" );
+	uLIMIT[MAXINTELIGENCIA] = register_cvar( "CODMOD_UPGRADE_MAXINTELIGENCIA", 	"70" );
+	uLIMIT[MAXZIVOT] = register_cvar( "CODMOD_UPGRADE_MAXZIVOT", 			"60" );
+	uLIMIT[MAXVYTRVALOST] = register_cvar( "CODMOD_UPGRADE_MAXVYTRVALOST", 		"70" );
+	uLIMIT[MAXRYCHLOST] = register_cvar( "CODMOD_UPGRADE_MAXRYCHLOST", 		"60" );
+	uLIMIT[MAXVESTA] = register_cvar( "CODMOD_UPGRADE_MAXVESTA", 			"60" );
+	uLIMIT[MAXINTERVAL] = register_cvar( "CODMOD_UPGRADE_MAXINTERVAL", 		"80" );
 	
 	/*////////////================= END CALL OD DUTY CVARS =================\\\\\\\\\\\\\*/
 
@@ -703,6 +710,11 @@ public plugin_init()
 	
 	register_clcmd( "say /prikazy", 	"Cmd_ShowHelpMotd" );
 	
+	register_clcmd( "say /ach", 		"display_achievement" );
+	register_clcmd( "say_team /ach", 	"display_achievement" );
+	register_clcmd( "say /ocenenie", 	"display_achievement" );
+	register_clcmd( "say_team /ocenenie", 	"display_achievement" );
+	
 	register_clcmd( "say /rs", 		"Cmd_ResetPlayerScore" );
 	register_clcmd( "say_team /rs", 	"Cmd_ResetPlayerScore" );
 	register_clcmd( "say /resetscore", 	"Cmd_ResetPlayerScore" );
@@ -741,14 +753,12 @@ public plugin_init()
 	g_sync_hudmsg4 = CreateHudSyncObj( );
 	g_sync_hudmsg5 = CreateHudSyncObj( );
 	g_sync_hudmsg6 = CreateHudSyncObj( );
+	g_sync_hudmsg7 = CreateHudSyncObj( );
 }
 
 public plugin_cfg( ) 
 {
-	new cfgdir[32];
-	get_configsdir(cfgdir, charsmax(cfgdir));
-
-	server_cmd("exec %s/codmw.cfg", cfgdir);
+	auto_exec_config("codmw");
 
 	server_cmd("sv_maxspeed %i", mCVARS[gMAXSPEED]);
 }
@@ -784,8 +794,6 @@ public client_connect(id)
 	
 	sGETITEM[id][bVIPMODE] = false;
 	
-	//LoadData2( id );
-	
 	get_user_authid(id, g_szAuthID[id], charsmax(g_szAuthID[]));
 	
 	remove_task(id+TASK_SHOW_INFORMATION);
@@ -810,7 +818,6 @@ public client_disconnect(id)
 	
 	Func_RemoveItem(id);
 	SaveData(id);
-	//SaveData2( id );
 	Func_RemoveUserVip(id);
 }
 
@@ -1078,6 +1085,7 @@ public Ham_PlayerSpawn( id )
 	uITEMS[OZIVENIE][id] = SzClassHealth[gPlayerClass[id]]+uITEMS[ZIVOT][id]*1;
 	ufITEMS[ZRYCHLENIE][id] = STANDARD_PLAYER_SPEED*SzClassSpeed[gPlayerClass[id]]+floatround(uITEMS[RYCHLOST][id]*1.3);
 	uITEMS[KEVLAR][id] = SzClassArmor[gPlayerClass[id]]+uITEMS[VESTA][id]*2;
+	uITEMS[INTERVAL2][id] = (get_user_flags(id) & VIP_ACCESS ? 140:100)+uITEMS[INTERVAL][id]*1;
 	
 	if(gPlayerItem[id][0] == 18)
 	{
@@ -1208,13 +1216,19 @@ public Event_ResetHud(id)
 
 public Ham_PlayerDamage(this, idinflictor, idattacker, Float:damage, damagebits)
 {
-	if(!is_user_alive(this) || !is_user_connected(this) || gPlayerItem[this][0] == 24 || !is_user_connected(idattacker) || get_user_team(this) == get_user_team(idattacker) || !gPlayerClass[idattacker])
+	if(!is_user_alive(this) || !is_user_connected(this) || gPlayerItem[this][0] == 24 || !gPlayerClass[idattacker])
 		return HAM_IGNORED;
-	
+		
+	if( !is_user_alive(idattacker) )
+		return HAM_IGNORED;
+		
+	if( get_user_team(this) == get_user_team(idattacker) )
+		return HAM_IGNORED;
+		
 	new health = get_user_health(this);
 	new weapon = get_user_weapon(idattacker);
 	
-	if(health < 2)
+	if(health <= 1)
 		return HAM_IGNORED;
 	
 	if(gPlayerItem[this][0] == 27 && gPlayerItem[this][1]>0)
@@ -1290,7 +1304,7 @@ public Event_Damage(id)
 {
 	new attacker = get_user_attacker(id);
 	new damage = read_data(2);
-	if(!is_user_alive(attacker) || !is_user_connected(attacker) || id == attacker || !gPlayerClass[attacker])
+	if(!is_user_connected(attacker) || !gPlayerClass[attacker])
 		return PLUGIN_CONTINUE;
 	
 	if ( gPlayerItem[attacker][0] == 12 && random_num(1, gPlayerItem[id][1]) == 1 )
@@ -1298,16 +1312,15 @@ public Event_Damage(id)
 
 	if(get_user_team(id) != get_user_team(attacker))
 	{
+		new bonuss = 1;
 		while(damage>20)
 		{
 			damage-=20;
-			gPlayerExperience[attacker]++;
+			gPlayerExperience[attacker] += bonuss;
 		}
 	}
-	if ( gPlayerLevel[attacker] < get_pcvar_num( mCVARS[gMAXLEVEL] ) )
-		Func_CheckPlayerLevel(attacker);
-	else return PLUGIN_HANDLED;
-	return PLUGIN_CONTINUE;
+	Func_CheckPlayerLevel(attacker);
+	return PLUGIN_HANDLED;
 }
 
 public Event_DeathMsg()
@@ -1315,7 +1328,7 @@ public Event_DeathMsg()
 	new id = read_data(2);
 	new attacker = read_data(1);
 	
-	if ( !is_user_alive(attacker) || !is_user_connected(attacker) )
+	if ( !is_user_alive(attacker) || !is_user_connected(attacker) || is_user_bot(attacker) )
 		return PLUGIN_CONTINUE;
 		
 	new weapon = get_user_weapon(attacker);
@@ -1323,26 +1336,28 @@ public Event_DeathMsg()
 	
 	if ( get_user_team(id) != get_user_team(attacker) && gPlayerClass[attacker] )
 	{
-			new new_bonus = 0;
-			
-			new_bonus += get_pcvar_num(bCVARS[gKILL]);
+			new new_bonus2 = get_pcvar_num(bCVARS[gKILL]);
+			new new_bonus = get_pcvar_num(bCVARS[gKILL]);
 			
 			if ( gPlayerClass[id] == Rambo && gPlayerClass[attacker] != Rambo )
 				new_bonus += get_pcvar_num(bCVARS[gKILL])*2;
 			
 			if ( gPlayerLevel[id] > gPlayerLevel[attacker] )
-				new_bonus += gPlayerLevel[id] - gPlayerLevel[attacker];
-			
+				new_bonus += (gPlayerLevel[id] - gPlayerLevel[attacker])*(new_bonus2/40);
+				
 			if ( gPlayerClass[attacker] == Rambo || gPlayerItem[attacker][0] == 15 && maxClip[weapon] != -1 )
 			{
-				
 				new new_health = (health+20<uITEMS[OZIVENIE][attacker])? health+20: uITEMS[OZIVENIE][attacker];
 				set_user_clip(attacker, maxClip[weapon]);
 				set_user_health(attacker, new_health);
 			}
 			if ( !gPlayerItem[attacker][0] )
+			{
 				Func_GiveItem(attacker, random_num(1, sizeof SzItemName-1));
-			
+				set_task( 1.0 , "Func_TimerItem" , attacker, _, _, "b" );
+				g_iIntervalItemu[ attacker ] = uITEMS[INTERVAL2][attacker];
+
+			}
 			if ( gPlayerItem[attacker][0] == 14 )
 			{
 				new new_health = (health+50<uITEMS[OZIVENIE][attacker])? health+50: uITEMS[OZIVENIE][attacker];
@@ -1358,12 +1373,12 @@ public Event_DeathMsg()
 				cs_set_user_money(attacker, cs_get_user_money(attacker) + get_cvar_num(bCVARS[gMONEYVIP]) );
 				
 				set_hudmessage(255, 212, 0, 0.50, 0.33, 1, 6.0, 4.0);
-				ShowSyncHudMsg(attacker, g_sync_hudmsg6, "+%i XP / +%i HP", get_pcvar_num(bCVARS[gKILLVIP]), get_pcvar_num(bCVARS[gHEALTHVIP]));
+				ShowSyncHudMsg(attacker, g_sync_hudmsg4, "+%i XP / +%i HP", get_pcvar_num(bCVARS[gKILLVIP]), get_pcvar_num(bCVARS[gHEALTHVIP]));
 			} 
 			else
 			{
 				set_hudmessage(255, 212, 0, 0.50, 0.33, 1, 6.0, 4.0);
-				ShowSyncHudMsg(attacker, g_sync_hudmsg6, "+%i XP", new_bonus);
+				ShowSyncHudMsg(attacker, g_sync_hudmsg4, "+%i XP", get_pcvar_num(bCVARS[gKILL]));
 			
 				gPlayerExperience[attacker] += new_bonus;
 			}
@@ -1372,8 +1387,9 @@ public Event_DeathMsg()
 				new itemxp = 50;
 				gPlayerExperience[attacker] += itemxp;
 				set_hudmessage(255, 212, 0, 0.3, 0.1, 1, 6.0, 4.0);
-				ShowSyncHudMsg(attacker, g_sync_hudmsg6, "+%i XP", itemxp);
+				ShowSyncHudMsg(attacker, g_sync_hudmsg4, "+%i XP", itemxp);
 			}
+			gACHIEVEMENT[attacker][ ACH_NORMALKILL ]++;
 	}
 
 	if ( gPlayerItem[id][0] == 7 && random(3) == 2 || gPlayerClass[id] == Terminator && random(3) == 2 )
@@ -1394,9 +1410,30 @@ public Event_DeathMsg()
 	sMAXNUM[id][sXPPACK2] = 0;
 	sMAXNUM[id][sXPPACK3] = 0;
 	cs_set_user_defuse(id, 0);
-	if ( gPlayerLevel[attacker] < get_pcvar_num( mCVARS[gMAXLEVEL] ) )
-		Func_CheckPlayerLevel(attacker);
-	else return PLUGIN_HANDLED;
+	Func_CheckPlayerLevel(attacker);
+	Func_CheckAchievements(attacker);
+	return PLUGIN_CONTINUE;
+}
+
+public client_death(killer, victim, wpnindex, hitplace, TK)
+{
+	
+	if ( TK || killer == victim )
+		return PLUGIN_HANDLED;
+
+	if ( hitplace==HIT_HEAD )
+	{			
+		gACHIEVEMENT[killer][ ACH_HSKILL ]++;
+	}
+	
+	if ( wpnindex==CSW_HEGRENADE )
+	{
+		gACHIEVEMENT[killer][ ACH_HEKILL ]++;
+	}
+	if ( wpnindex==CSW_KNIFE )
+	{
+		gACHIEVEMENT[killer][ ACH_KNIFEKILL ]++;
+	}
 	return PLUGIN_CONTINUE;
 }
 
@@ -1456,6 +1493,7 @@ public addItem(origin[3])
 
 public give_present(id)
 {
+	gACHIEVEMENT[id][ ACH_DROPBOX ]++;
 	new money = cs_get_user_money(id);
 	new i = random_num(0, 14);
 	switch (i)
@@ -1956,6 +1994,8 @@ public Cmd_UpgradeMenu(id)
 	nLen += format( MenuTexT[nLen], 355-nLen, "^n^t^t\y+ Rychlost ( +1.3 Speed )" );
 	nLen += format( MenuTexT[nLen], 355-nLen, "^n\y5. \wBrnenie: %s%i\w/\r%i", ( uITEMS[VESTA][id] != get_pcvar_num( uLIMIT[MAXVESTA] ) ) ? "\d" : "\r", uITEMS[VESTA][id], get_pcvar_num( uLIMIT[MAXVESTA] ) );
 	nLen += format( MenuTexT[nLen], 355-nLen, "^n^t^t\y+ Vesta ( +2 AP )" );
+	nLen += format( MenuTexT[nLen], 355-nLen, "^n\y6. \wInterval: %s%i\w/\r%i", ( uITEMS[INTERVAL][id] != get_pcvar_num( uLIMIT[MAXINTERVAL] ) ) ? "\d" : "\r", uITEMS[INTERVAL][id], get_pcvar_num( uLIMIT[MAXINTERVAL] ) );
+	nLen += format( MenuTexT[nLen], 355-nLen, "^n^t^t\y+ Cas itemu ( +1 Sek )" );
 	nLen += format( MenuTexT[nLen], 355-nLen, "^n^n\y0. \wKoniec" );
 	
 	show_menu(id, UPG_MENU, MenuTexT, -1, "UpgradeMenuSelect" );
@@ -1967,112 +2007,86 @@ public Cmd_UpgradeMenu_Handler(id, key)
 	{ 
 		case 0: 
 		{    
-			if ( uITEMS[POINTS][id] > 0 )
+			if ( uITEMS[INTELIGENCIA][id] < get_pcvar_num( uLIMIT[MAXINTELIGENCIA] ) )
 			{
-				if ( uITEMS[INTELIGENCIA][id] < get_pcvar_num( uLIMIT[MAXINTELIGENCIA] ) )
-				{
-					uITEMS[INTELIGENCIA][id]++;
-					uITEMS[POINTS][id]--;
-				}
-				else 
-				{
-					client_cmd(id, "spk buttons/button2.wav");
-					ColorMsg( id, "^1[^4%s^1] Dosiahol si maximum schopnosti:^3 Inteligencia^1. Gratulujeme!", PLUGIN );
-					if ( uITEMS[POINTS][id] > 0 )
-						Cmd_UpgradeMenu(id);
-					return PLUGIN_HANDLED;
-				}
-			} else	
+				uITEMS[INTELIGENCIA][id]++;
+				uITEMS[POINTS][id]--;
+				gACHIEVEMENT[id][ ACH_UPGRADE ]++;
+			}
+			else 
 			{
-				ColorMsg( id, "^1[^4%s^1] Nemas dostatok bodov!!", PLUGIN );
+				client_cmd(id, "spk buttons/button2.wav");
+				ColorMsg( id, "^1[^4%s^1] Dosiahol si maximum schopnosti:^3 Inteligencia^1. Gratulujeme!", PLUGIN );
 			}
 		}
 		case 1:
 		{    
-			if ( uITEMS[POINTS][id] > 0 )
+			if ( uITEMS[ZIVOT][id] < get_pcvar_num( uLIMIT[MAXZIVOT] ) )
 			{
-				if ( uITEMS[ZIVOT][id] < get_pcvar_num( uLIMIT[MAXZIVOT] ) )
-				{
-					uITEMS[ZIVOT][id]++;
-					uITEMS[POINTS][id]--;
-				}
-				else 
-				{
-					client_cmd(id, "spk buttons/button2.wav");
-					ColorMsg( id, "^1[^4%s^1] Dosiahol si maximum schopnosti:^3 Zivot^1. Gratulujeme!", PLUGIN );
-					if ( uITEMS[POINTS][id] > 0 )
-						Cmd_UpgradeMenu(id);
-					return PLUGIN_HANDLED;
-				}
-			} else	
+				uITEMS[ZIVOT][id]++;
+				uITEMS[POINTS][id]--;
+				gACHIEVEMENT[id][ ACH_UPGRADE ]++;
+			}
+			else 
 			{
-				ColorMsg( id, "^1[^4%s^1] Nemas dostatok bodov!!", PLUGIN );
+				client_cmd(id, "spk buttons/button2.wav");
+				ColorMsg( id, "^1[^4%s^1] Dosiahol si maximum schopnosti:^3 Zivot^1. Gratulujeme!", PLUGIN );
 			}
 		}
 		case 2:
-		{    
-			if ( uITEMS[POINTS][id] > 0 )
+		{
+			if ( uITEMS[VYTRVALOST][id] < get_pcvar_num( uLIMIT[MAXVYTRVALOST] ) )
 			{
-				if ( uITEMS[VYTRVALOST][id] < get_pcvar_num( uLIMIT[MAXVYTRVALOST] ) )
-				{
-					uITEMS[VYTRVALOST][id]++;
-					uITEMS[POINTS][id]--;
-				}
-				else 
-				{
-					client_cmd(id, "spk buttons/button2.wav");
-					ColorMsg( id, "^1[^4%s^1] Dosiahol si maximum schopnosti:^3 Vytrvalost^1. Gratulujeme!", PLUGIN );
-					if ( uITEMS[POINTS][id] > 0 )
-						Cmd_UpgradeMenu(id);
-					return PLUGIN_HANDLED;
-				}
-			} else	
+				uITEMS[VYTRVALOST][id]++;
+				uITEMS[POINTS][id]--;
+				gACHIEVEMENT[id][ ACH_UPGRADE ]++;
+			}
+			else 
 			{
-				ColorMsg( id, "^1[^4%s^1] Nemas dostatok bodov!!", PLUGIN );
+				client_cmd(id, "spk buttons/button2.wav");
+				ColorMsg( id, "^1[^4%s^1] Dosiahol si maximum schopnosti:^3 Vytrvalost^1. Gratulujeme!", PLUGIN );
 			}
 		}
 		case 3:
 		{    
-			if ( uITEMS[POINTS][id] > 0 )
+			if ( uITEMS[RYCHLOST][id] < get_pcvar_num( uLIMIT[MAXRYCHLOST] ) )
 			{
-				if ( uITEMS[RYCHLOST][id] < get_pcvar_num( uLIMIT[MAXRYCHLOST] ) )
-				{
-					uITEMS[RYCHLOST][id]++;
-					uITEMS[POINTS][id]--;
-				}
-				else 
-				{
-					client_cmd(id, "spk buttons/button2.wav");
-					ColorMsg( id, "^1[^4%s^1] Dosiahol si maximum schopnosti:^3 Kondicia^1. Gratulujeme!", PLUGIN );
-					if ( uITEMS[POINTS][id] > 0 )
-						Cmd_UpgradeMenu(id);
-					return PLUGIN_HANDLED;
-				}
-			} else	
+				uITEMS[RYCHLOST][id]++;
+				uITEMS[POINTS][id]--;
+				gACHIEVEMENT[id][ ACH_UPGRADE ]++;
+			}
+			else 
 			{
-				ColorMsg( id, "^1[^4%s^1] Nemas dostatok bodov!!", PLUGIN );
+				client_cmd(id, "spk buttons/button2.wav");
+				ColorMsg( id, "^1[^4%s^1] Dosiahol si maximum schopnosti:^3 Kondicia^1. Gratulujeme!", PLUGIN );
 			}
 		}
 		case 4: 
 		{    
-			if ( uITEMS[POINTS][id] > 0 )
+			if ( uITEMS[VESTA][id] < get_pcvar_num( uLIMIT[MAXVESTA] ) )
 			{
-				if ( uITEMS[VESTA][id] < get_pcvar_num( uLIMIT[MAXVESTA] ) )
-				{
-					uITEMS[VESTA][id]++;
-					uITEMS[POINTS][id]--;
-				}
-				else 
-				{
-					client_cmd(id, "spk buttons/button2.wav");
-					ColorMsg( id, "^1[^4%s^1] Dosiahol si maximum schopnosti:^3 Armor^1. Gratulujeme!", PLUGIN );
-					if ( uITEMS[POINTS][id] > 0 )
-						Cmd_UpgradeMenu(id);
-					return PLUGIN_HANDLED;
-				}
-			} else	
+				uITEMS[VESTA][id]++;
+				uITEMS[POINTS][id]--;
+				gACHIEVEMENT[id][ ACH_UPGRADE ]++;
+			}
+			else 
 			{
-				ColorMsg( id, "^1[^4%s^1] Nemas dostatok bodov!!", PLUGIN );
+				client_cmd(id, "spk buttons/button2.wav");
+				ColorMsg( id, "^1[^4%s^1] Dosiahol si maximum schopnosti:^3 Armor^1. Gratulujeme!", PLUGIN );
+			}
+		}
+		case 5: 
+		{    
+			if ( uITEMS[INTERVAL][id] < get_pcvar_num( uLIMIT[MAXINTERVAL] ) )
+			{
+				uITEMS[INTERVAL][id]++;
+				uITEMS[POINTS][id]--;
+				gACHIEVEMENT[id][ ACH_UPGRADE ]++;
+			}
+			else 
+			{
+				client_cmd(id, "spk buttons/button2.wav");
+				ColorMsg( id, "^1[^4%s^1] Dosiahol si maximum schopnosti:^3 Interval^1. Gratulujeme!", PLUGIN );
 			}
 		}
 		case 9: return PLUGIN_HANDLED;
@@ -3374,32 +3388,64 @@ public Func_UseItem(id)
 
 public SaveData(id)
 {
+	if( is_user_bot(id) ) return;
+	
 	new steamid[35];
 	get_user_authid(id, steamid, sizeof(steamid) - 1);
 
 	new fkey[84];
 	new fdata[456];
 	format(fkey,83,"%s-%i-codmw",steamid, gPlayerClass[ id ]);
-	format(fdata,455,"%i#%i#%i#%i#%i#%i#%i", gPlayerExperience[ id ], gPlayerLevel[ id ], uITEMS[ INTELIGENCIA ][ id ], uITEMS[ ZIVOT ][ id ], uITEMS[ VYTRVALOST ][ id ], uITEMS[ RYCHLOST ][ id ], uITEMS[ VESTA ][ id ] );
+	format(fdata,455,"%i#%i#%i#%i#%i#%i#%i#%i"
+	, gPlayerExperience[ id ],
+	gPlayerLevel[ id ],
+	uITEMS[ INTELIGENCIA ][ id ],
+	uITEMS[ ZIVOT ][ id ],
+	uITEMS[ VYTRVALOST ][ id ],
+	uITEMS[ RYCHLOST ][ id ],
+	uITEMS[ VESTA ][ id ],
+	uITEMS[ INTERVAL ][ id ]  );
 
 	fvault_set_data( fDataBase, fkey, fdata);
+
+	format(fkey,83,"%s-%i-codmwachievement",steamid, gPlayerClass[ id ]);
+	format(fdata,455,"%i#%i#%i#%i#%i#%i#%i#%i",
+	gACHIEVEMENT[id][ ACH_NORMALKILL ],
+	gACHIEVEMENT[id][ ACH_HSKILL ],
+	gACHIEVEMENT[id][ ACH_KNIFEKILL ],
+	gACHIEVEMENT[id][ ACH_HEKILL ],
+	gACHIEVEMENT[id][ ACH_DROPITEM ],
+	gACHIEVEMENT[id][ ACH_GIVEITEM ],
+	gACHIEVEMENT[id][ ACH_LEVELUP ],
+	gACHIEVEMENT[id][ ACH_UPGRADE ]);
+
+	fvault_set_data( fDataBase2, fkey, fdata);
 }
 
 public LoadData(id, class)
 {
+	if( is_user_bot(id) ) return;
+	
 	new steamid[35];
 	get_user_authid(id, steamid, sizeof(steamid) - 1);
 	new fkey[84];
 	new fdata[456];
 	format(fkey,83,"%s-%i-codmw", steamid, class);
-	format(fdata,455,"%i#%i#%i#%i#%i#%i#%i", gPlayerExperience[ id ], gPlayerLevel[ id ], uITEMS[ INTELIGENCIA ][ id ], uITEMS[ ZIVOT ][ id ], uITEMS[ VYTRVALOST ][ id ], uITEMS[ RYCHLOST ][ id ], uITEMS[ VESTA ][ id ] );
+	format(fdata,455,"%i#%i#%i#%i#%i#%i#%i#%i",
+	gPlayerExperience[ id ],
+	gPlayerLevel[ id ],
+	uITEMS[ INTELIGENCIA ][ id ],
+	uITEMS[ ZIVOT ][ id ],
+	uITEMS[ VYTRVALOST ][ id ],
+	uITEMS[ RYCHLOST ][ id ],
+	uITEMS[ VESTA ][ id ],
+	uITEMS[ INTERVAL ][ id ] );
 	fvault_get_data( fDataBase, fkey, fdata, 455);
 	
 	replace_all(fdata, 455, "#", " ");
 	
-	new fXP[ 32 ], fLevel[ 32 ], fInteligencia[ 32 ], fZivot[ 32 ], fVytrvalost[ 32 ], fRychlost[ 32 ], fVesta[ 32 ];
-	
-	parse(fdata, fXP, 31, fLevel, 31, fInteligencia, 31, fZivot, 31, fVytrvalost, 31, fRychlost, 31, fVesta, 31 );
+	new fXP[ 32 ], fLevel[ 32 ], fInteligencia[ 32 ], fZivot[ 32 ], fVytrvalost[ 32 ], fRychlost[ 32 ], fVesta[ 32 ], fInterval[ 32 ];
+	parse(fdata, fXP, 31, fLevel, 31, fInteligencia, 31, fZivot, 31, fVytrvalost, 31, fRychlost, 31, fVesta, 31, fInterval, 31 );
 	
 	gPlayerExperience[id] = str_to_num( fXP );
 	gPlayerLevel[id] = str_to_num( fLevel ) > 0 ? str_to_num( fLevel ) : 1;
@@ -3409,13 +3455,43 @@ public LoadData(id, class)
 	uITEMS[ VYTRVALOST ] [id ] = str_to_num( fVytrvalost );
 	uITEMS[ RYCHLOST ][ id ] = str_to_num( fRychlost );
 	uITEMS[ VESTA ][ id ] = str_to_num( fVesta );
-	uITEMS[ POINTS ][ id ] = ( gPlayerLevel[ id ]-1 )*2-uITEMS[ INTELIGENCIA ][ id ]-uITEMS[ ZIVOT ][ id ]-uITEMS[ VYTRVALOST ][ id ]-uITEMS[ RYCHLOST ][ id ]-uITEMS[ VESTA ][ id ];
+	uITEMS[ INTERVAL ][ id ] = str_to_num( fInterval );
+	uITEMS[ POINTS ][ id ] = ( gPlayerLevel[ id ]-1 )*2-uITEMS[ INTELIGENCIA ][ id ]-uITEMS[ ZIVOT ][ id ]-uITEMS[ VYTRVALOST ][ id ]-uITEMS[ RYCHLOST ][ id ]-uITEMS[ VESTA ][ id ]-uITEMS[ INTERVAL ][ id ];
+	
+	// ACHIEVEMENTS
+	
+	format(fkey,83,"%s-%i-codmwachievement",steamid, gPlayerClass[ id ]);
+	format(fdata,455,"%i#%i#%i#%i#%i#%i#%i#%i",
+	gACHIEVEMENT[id][ ACH_NORMALKILL ],
+	gACHIEVEMENT[id][ ACH_HSKILL ],
+	gACHIEVEMENT[id][ ACH_KNIFEKILL ],
+	gACHIEVEMENT[id][ ACH_HEKILL ],
+	gACHIEVEMENT[id][ ACH_DROPITEM ],
+	gACHIEVEMENT[id][ ACH_GIVEITEM ],
+	gACHIEVEMENT[id][ ACH_LEVELUP ],
+	gACHIEVEMENT[id][ ACH_UPGRADE ]);
+	
+	new fAch1[ 32 ], fAch2[ 32 ], fAch3[ 32 ], fAch4[ 32 ], fAch5[ 32 ], fAch6[ 32 ], fAch7[ 32 ], fAch8[ 32 ];
+	parse(fdata, fAch1, 31, fAch2, 31, fAch3, 31, fAch4, 31, fAch5, 31, fAch6, 31, fAch7, 31, fAch8, 31 );
+
+	fvault_get_data( fDataBase2, fkey, fdata, 455);
+	
+	gACHIEVEMENT[id][ ACH_NORMALKILL ] = str_to_num( fAch1 );
+	gACHIEVEMENT[id][ ACH_HSKILL ] = str_to_num( fAch2 );
+	gACHIEVEMENT[id][ ACH_KNIFEKILL ] = str_to_num( fAch3 );
+	gACHIEVEMENT[id][ ACH_HEKILL ] = str_to_num( fAch4 );
+	gACHIEVEMENT[id][ ACH_DROPITEM ] = str_to_num( fAch5 );
+	gACHIEVEMENT[id][ ACH_GIVEITEM ] = str_to_num( fAch6 );
+	gACHIEVEMENT[id][ ACH_LEVELUP ] = str_to_num( fAch7 );
+	gACHIEVEMENT[id][ ACH_UPGRADE ] = str_to_num( fAch8 );
 } 
 
 public Cmd_DropItem(id)
 {
 	if ( gPlayerItem[id][0] )
 	{
+		gACHIEVEMENT[id][ ACH_DROPITEM ]++;
+		remove_task( id );
 		ColorMsg( id, "^1[^4%s^1] Vyhodil si^3 %s^1.", PLUGIN , SzItemName[gPlayerItem[id][0]]);
 		Func_RemoveItem(id);
 		client_cmd(id, "spk sound/items/weapondrop1.wav");
@@ -3440,10 +3516,27 @@ public Func_RemoveItem(id)
 	}
 }
 
+public Func_TimerItem ( iPlayer )
+{	
+	if ( !is_user_alive ( iPlayer ) ) return PLUGIN_CONTINUE;
+	if ( g_iIntervalItemu[ iPlayer ] <= 0 ) 
+	{
+		remove_task( iPlayer );
+		Cmd_DropItem( iPlayer );
+		return PLUGIN_HANDLED;
+	}
+	g_iIntervalItemu[ iPlayer ]--;	
+
+	set_hudmessage(0, 255, 42, 0.02, 0.285, 0, 1.0, 1.1, 0.0, 0.0, -1 );
+	show_hudmessage( iPlayer , "| Cas Itemu: %i", g_iIntervalItemu[ iPlayer ] );
+	return PLUGIN_CONTINUE;
+}
+
 public Func_GiveItem(id, item)
-{
+{	
 	Func_RemoveItem(id);
 	gPlayerItem[id][0] = item;
+	gACHIEVEMENT[id][ ACH_GIVEITEM ]++;
 	ColorMsg(id, "^1[^4%s^1] Dostal si item:^3 %s^1.", PLUGIN , SzItemName[gPlayerItem[id][0]]); 
 	ColorMsg(id, "^1[^4%s^1] Popis itemu:^3 %s^1.", PLUGIN , SzItemPopis[gPlayerItem[id][0]]);  
 	
@@ -3582,27 +3675,185 @@ public Func_PlayerRespawn(id)
 
 public Func_CheckPlayerLevel(id)
 {    
-	if ( gPlayerLevel[id] < get_pcvar_num( mCVARS[gMAXLEVEL] ) )
+	new limit_level = get_pcvar_num( mCVARS[gMAXLEVEL] );
+
+	while( gPlayerExperience[id] >= kalkulacia(gPlayerLevel[id]) && gPlayerLevel[id] < limit_level )
 	{
-		while( gPlayerExperience[id] >= experience_level[gPlayerLevel[id]] )
-		{
-			gPlayerLevel[id]++;
-			set_hudmessage(60, 200, 25, -1.0, 0.25, 1, 1.0, 2.0, 0.1, 0.2, 2);
-			ShowSyncHudMsg(id, g_sync_hudmsg5, "Gratulujem! Dosiahol si %d level!", gPlayerLevel[id] );
-			ColorMsg(id, "^1[^4%s^1]^1 Gratulujeme ti k novemu levelu^3(%d)^4 %s^1. Vylepsi si dalsie kolo postavu.", PLUGIN, gPlayerLevel[id], SzLevelName[gPlayerLevel[id]] );
+
+		gPlayerLevel[id]++;
+		set_hudmessage(60, 200, 25, -1.0, 0.25, 1, 1.0, 2.0, 0.1, 0.2, 2);
+		ShowSyncHudMsg(id, g_sync_hudmsg3, "Gratulujem! Dosiahol si %d level!", gPlayerLevel[id] );
+		ColorMsg(id, "^1[^4%s^1]^1 Gratulujeme ti k novemu levelu^3(%d)^4 %s^1. Vylepsi si dalsie kolo postavu.", PLUGIN, gPlayerLevel[id], SzLevelName[gPlayerLevel[id]] );
+		gACHIEVEMENT[id][ ACH_LEVELUP ]++;
 			
-			new rsnd = random_num(0,2);
-			switch(rsnd)
-			{
-				case 0: client_cmd(id, "spk sound/%s", s_levelsound[0]);
-				case 1: client_cmd(id, "spk sound/%s", s_levelsound[1]);
-			}
+		new rsnd = random_num(0,1);
+		switch(rsnd)
+		{
+			case 0: client_cmd(id, "spk sound/%s", s_levelsound[0]);
+			case 1: client_cmd(id, "spk sound/%s", s_levelsound[1]);
 		}
-		
-		uITEMS[POINTS][id] = (gPlayerLevel[id]-1)*4-uITEMS[INTELIGENCIA][id]-uITEMS[ZIVOT][id]-uITEMS[VYTRVALOST][id]-uITEMS[RYCHLOST][id]-uITEMS[VESTA][id];
-	} else return 0;
+		uITEMS[POINTS][id] = (gPlayerLevel[id]-1)*4-uITEMS[INTELIGENCIA][id]-uITEMS[ZIVOT][id]-uITEMS[VYTRVALOST][id]-uITEMS[RYCHLOST][id]-uITEMS[VESTA][id]-uITEMS[INTERVAL][id];
+	}
 	SaveData(id);
 	return PLUGIN_CONTINUE;
+}
+
+public Func_CheckAchievements(id)
+{ 
+	if ( is_user_bot(id) ) return;
+	
+	set_hudmessage(255, 255, 255, -1.0, 0.80, 1, 3.0, 4.0, 0.02, 0.02, 4);
+	if ( gACHIEVEMENT[id][ ACH_NORMALKILL ] == 1 )
+	{ 
+		ShowSyncHudMsg(id, g_sync_hudmsg7, "***FIRST KILL***^n+10 XP");
+		ColorMsg( id, "^1[^4ACHIEVEMENTS^1]^4 ***FIRST KILL*** +10 XP");
+		gPlayerExperience[id] += 10;
+		gACHIEVEMENT[id][ ACH_MAX ]++;
+	}
+	if ( gACHIEVEMENT[id][ ACH_NORMALKILL ] == 500 )
+	{ 
+		ShowSyncHudMsg(id, g_sync_hudmsg7, "***HUNTER***^n+1000 XP");
+		ColorMsg( id, "^1[^4ACHIEVEMENTS^1]^4 ***HUNTER*** +1000 XP");
+		gPlayerExperience[id] += 1000;
+		gACHIEVEMENT[id][ ACH_MAX ]++;
+	}
+	if ( gACHIEVEMENT[id][ ACH_HSKILL ] == 400 )
+	{ 
+		ShowSyncHudMsg(id, g_sync_hudmsg7, "***HEADSHOT MASTER***^n+500 XP");
+		ColorMsg( id, "^1[^4ACHIEVEMENTS^1]^4 ***HEADSHOT MASTER*** +500 XP");
+		gPlayerExperience[id] += 500;
+		gACHIEVEMENT[id][ ACH_MAX ]++;
+	}
+	if ( gACHIEVEMENT[id][ ACH_KNIFEKILL ] == 200 )
+	{ 
+		ShowSyncHudMsg(id, g_sync_hudmsg7, "***KNIFE ELITE***^n+500 XP");
+		ColorMsg( id, "^1[^4ACHIEVEMENTS^1]^4 ***KNIFE ELITE*** +500 XP");
+		gPlayerExperience[id] += 500;
+		gACHIEVEMENT[id][ ACH_MAX ]++;
+	}
+	if ( gACHIEVEMENT[id][ ACH_HEKILL ] == 100 )
+	{ 
+		ShowSyncHudMsg(id, g_sync_hudmsg7, "***GRENADE SPLITT***^n+500 XP");
+		ColorMsg( id, "^1[^4ACHIEVEMENTS^1]^4 ***GRENADE SPLITT*** +500 XP");
+		gPlayerExperience[id] += 500;
+		gACHIEVEMENT[id][ ACH_MAX ]++;
+	}
+	if ( gACHIEVEMENT[id][ ACH_DROPITEM ] == 300 )
+	{ 
+		ShowSyncHudMsg(id, g_sync_hudmsg7, "***DROPMAN***^n+200 XP");
+		ColorMsg( id, "^1[^4ACHIEVEMENTS^1]^4 ***DROPMAN*** +200 XP");
+		gPlayerExperience[id] += 2000;
+		gACHIEVEMENT[id][ ACH_MAX ]++;
+	}
+	if ( gACHIEVEMENT[id][ ACH_GIVEITEM ] == 250 )
+	{ 
+		ShowSyncHudMsg(id, g_sync_hudmsg7, "***GIVERMAN***^n+150 XP");
+		ColorMsg( id, "^1[^4ACHIEVEMENTS^1]^4 ***GIVERMAN*** +150 XP");
+		gPlayerExperience[id] += 150;
+		gACHIEVEMENT[id][ ACH_MAX ]++;
+	}
+	if ( gACHIEVEMENT[id][ ACH_LEVELUP ] == 50 )
+	{ 
+		ShowSyncHudMsg(id, g_sync_hudmsg7, "***UP THUNDER***^n+1000 XP");
+		ColorMsg( id, "^1[^4ACHIEVEMENTS^1]^4 ***UP THUNDER*** +1000 XP");
+		gPlayerExperience[id] += 1000;
+		gACHIEVEMENT[id][ ACH_MAX ]++;
+	}
+	if ( gACHIEVEMENT[id][ ACH_UPGRADE ] == 200 )
+	{ 
+		ShowSyncHudMsg(id, g_sync_hudmsg7, "***HALF UPGRADE***^n+1000 XP");
+		ColorMsg( id, "^1[^4ACHIEVEMENTS^1]^4 ***HALF UPGRADE*** +1000 XP");
+		gPlayerExperience[id] += 1000;
+		gACHIEVEMENT[id][ ACH_MAX ]++;
+	}
+	if ( gACHIEVEMENT[id][ ACH_DROPBOX ] == 200 )
+	{ 
+		ShowSyncHudMsg(id, g_sync_hudmsg7, "***KURIER***^n+300 XP");
+		ColorMsg( id, "^1[^4ACHIEVEMENTS^1]^4 ***HALF KURIER*** +300 XP");
+		gPlayerExperience[id] += 300;
+		gACHIEVEMENT[id][ ACH_MAX ]++;
+	}
+	SaveData(id);
+	Func_CheckPlayerLevel(id);
+	return;
+}
+
+public display_achievement(id,statsid)
+{
+	new tempstring[300];
+	new motd[2048];
+	new tempname[30];
+	get_user_name(statsid,tempname,29);
+	
+	format(motd,2048,"<html><body bgcolor=^"#000^"><font size=^"2^" face=^"verdana^" color=^"FFFFFF^">",tempname);
+	
+	format(tempstring,300,"<center><b>POCET SPLNENYCH ACHIEVEMENTOV - *<font color=^"FF8020^">%d</font>/<font color=^"8020FF^">10</font>*</b></center><br><br>",gACHIEVEMENT[id][ ACH_MAX ]);
+	add(motd,2048,tempstring);
+	/*--------------------------------------------------------------------------------*/
+
+	if ( gACHIEVEMENT[id][ ACH_NORMALKILL ] >= 1 )
+		format(tempstring,300,"<font color=^"20FF20^"><b>*SPLNENE*</b></font> FIRST KILL - Zabitie prveho nepriatela.<br><br>");
+	else
+		format(tempstring,300,"<b>*<font color=^"FF8020^">%d</font>/<font color=^"8020FF^">1</font>*</b> FIRST KILL - Zabitie prveho nepriatela.<br><br>", gACHIEVEMENT[id][ ACH_NORMALKILL ] );
+	add(motd,2048,tempstring);
+	
+	if ( gACHIEVEMENT[id][ ACH_NORMALKILL ] >= 500 )
+		format(tempstring,300,"<font color=^"20FF20^"><b>*SPLNENE*</b></font> HUNTER - Zabitych 500 nepriatelov.<br><br>");
+	else
+		format(tempstring,300,"<b>*<font color=^"FF8020^">%d</font>/<font color=^"8020FF^">500</font>*</b> HUNTER - Zabitych 500 nepriatelov.<br><br>", gACHIEVEMENT[id][ ACH_NORMALKILL ] );
+	add(motd,2048,tempstring);
+	
+	if ( gACHIEVEMENT[id][ ACH_HSKILL ] >= 400 )
+		format(tempstring,300,"<font color=^"20FF20^"><b>*SPLNENE*</b></font> HEADSHOT MASTER - Zabitych 400 nepriatelov do hlavy.<br><br>");
+	else
+		format(tempstring,300,"<b>*<font color=^"FF8020^">%d</font>/<font color=^"8020FF^">400</font>*</b> HEADSHOT MASTER - Zabitych 400 nepriatelov do hlavy.<br><br>", gACHIEVEMENT[id][ ACH_HSKILL ] );
+	add(motd,2048,tempstring);
+	
+	if ( gACHIEVEMENT[id][ ACH_KNIFEKILL ] >= 200 )
+		format(tempstring,300,"<font color=^"20FF20^"><b>*SPLNENE*</b></font> KNIFE ELITE - Zabitych 200 nepriatelov nozom.<br>");
+	else
+		format(tempstring,300,"<b>*<font color=^"FF8020^">%d</font>/<font color=^"8020FF^">200</font>*</b> KNIFE ELITE - Zabitych 200 nepriatelov nozom.<br><br>", gACHIEVEMENT[id][ ACH_KNIFEKILL ] );
+	add(motd,2048,tempstring);
+	
+	if ( gACHIEVEMENT[id][ ACH_HEKILL ] >= 100 )
+		format(tempstring,300,"<font color=^"20FF20^"><b>*SPLNENE*</b></font> GRENADE SPLITT - Zabitych 100 nepriatelov granatom.<br><br>");
+	else
+		format(tempstring,300,"<b>*<font color=^"FF8020^">%d</font>/<font color=^"8020FF^">100</font>*</b> GRENADE SPLITT - Zabitych 100 nepriatelov granatom.<br><br>", gACHIEVEMENT[id][ ACH_HEKILL ] );
+	add(motd,2048,tempstring);
+	
+	if ( gACHIEVEMENT[id][ ACH_DROPITEM ] >= 300 )
+		format(tempstring,300,"<font color=^"20FF20^"><b>*SPLNENE*</b></font> DROPMAN - Zahodenie/Dropnutie 300 itemov.<br><br>");
+	else
+		format(tempstring,300,"<b>*<font color=^"FF8020^">%d</font>/<font color=^"8020FF^">300</font>*</b> DROPMAN - Zahodenie/Dropnutie 300 itemov.<br><br>", gACHIEVEMENT[id][ ACH_DROPITEM ] );
+	add(motd,2048,tempstring);
+	
+	if ( gACHIEVEMENT[id][ ACH_GIVEITEM ] >= 250 )
+		format(tempstring,300,"<font color=^"20FF20^"><b>*SPLNENE*</b></font> GIVERMAN - Ziskanie 250 itemov.<br><br>");
+	else
+		format(tempstring,300,"<b>*<font color=^"FF8020^">%d</font>/<font color=^"8020FF^">250</font>*</b> GIVERMAN - Ziskanie 250 itemov.<br><br>", gACHIEVEMENT[id][ ACH_GIVEITEM ]);
+	add(motd,2048,tempstring);
+	
+	if ( gACHIEVEMENT[id][ ACH_LEVELUP ] >= 50 )
+		format(tempstring,300,"<font color=^"20FF20^"><b>*SPLNENE*</b></font> UP THUNDER - Docielenie 50-teho levelu.<br><br>");
+	else
+		format(tempstring,300,"<b>*<font color=^"FF8020^">%d</font>/<font color=^"8020FF^">50</font>*</b> UP THUNDER - Docielenie 50-teho levelu.<br><br>", gACHIEVEMENT[id][ ACH_LEVELUP ] );
+	add(motd,2048,tempstring);
+	
+	if ( gACHIEVEMENT[id][ ACH_UPGRADE ] >= 200 )
+		format(tempstring,300,"<font color=^"20FF20^"><b>*SPLNENE*</b></font> HALF UPGRADE - Upgrade menu 200-te vylepsenie.<br><br>");
+	else
+		format(tempstring,300,"<b>*<font color=^"FF8020^">%d</font>/<font color=^"8020FF^">200</font>*</b> HALF UPGRADE - Upgrade menu 200-te vylepsenie.<br><br>", gACHIEVEMENT[id][ ACH_UPGRADE ] );
+	add(motd,2048,tempstring);
+	
+	if ( gACHIEVEMENT[id][ ACH_DROPBOX ] >= 200 )
+		format(tempstring,300,"<font color=^"20FF20^"><b>*SPLNENE*</b></font> KURIER - Ziskanie 200 dropboxov za kill.<br><br>");
+	else
+		format(tempstring,300,"<b>*<font color=^"FF8020^">%d</font>/<font color=^"8020FF^">200</font>*</b> KURIER - Ziskanie 200 dropboxov za kill.<br><br>", gACHIEVEMENT[id][ ACH_DROPBOX ] );
+	add(motd,2048,tempstring);
+	
+	add(motd,2048,"</font></body></html>");
+	
+	show_motd(id,motd,"Tvoje Ocenenia");
 }
 
 public ShowInformation(id) 
@@ -3621,52 +3872,52 @@ public ShowInformation(id)
 		new targetname[33];
 		get_user_name(target, targetname, 32);
 		
-		if( gPlayerLevel[target] == get_pcvar_num( mCVARS[gMAXLEVEL] ) )
+		if( gPlayerLevel[target] >= get_pcvar_num( mCVARS[gMAXLEVEL] ) )
 		{
 			set_hudmessage(0, 255, 42, 0.02, 0.18, 0, 0.0, 0.3, 0.0, 0.0);
 			ShowSyncHudMsg(id, g_sync_hudmsg2, "| Meno: %s^n| Trieda: %s^n| Skusenosti: MAX^n| Level(%i): %s^n| Item: %s", targetname, SzClassName[gPlayerClass[target]], gPlayerLevel[target], SzLevelName[gPlayerLevel[target]], SzItemName[gPlayerItem[target][0]]);
 		} else 	
 		{
 			set_hudmessage(0, 255, 42, 0.02, 0.18, 0, 0.0, 0.3, 0.0, 0.0);
-			ShowSyncHudMsg(id, g_sync_hudmsg2, "| Meno: %s^n| Trieda: %s^n| Skusenosti: %i / %i^n| Level(%i): %s^n| Item: %s", targetname, SzClassName[gPlayerClass[target]], gPlayerExperience[target], experience_level[gPlayerLevel[target]], gPlayerLevel[target], SzLevelName[gPlayerLevel[target]], SzItemName[gPlayerItem[target][0]] );
+			ShowSyncHudMsg(id, g_sync_hudmsg2, "| Meno: %s^n| Trieda: %s^n| Skusenosti: %i / %i^n| Level(%i): %s^n| Item: %s", targetname, SzClassName[gPlayerClass[target]], gPlayerExperience[target], kalkulacia(gPlayerLevel[target]), gPlayerLevel[target], SzLevelName[gPlayerLevel[target]], SzItemName[gPlayerItem[target][0]] );
 		}
 		
 		return PLUGIN_CONTINUE;
 	}
-	if( gPlayerLevel[id] == get_pcvar_num( mCVARS[gMAXLEVEL] ) )
+	if( gPlayerLevel[id] >= get_pcvar_num( mCVARS[gMAXLEVEL] ) )
 	{
 		set_hudmessage(0, 255, 42, 0.02, 0.18, 0, 0.0, 0.3, 0.0, 0.0);
 		ShowSyncHudMsg(id, g_sync_hudmsg1, "| Trieda: %s^n| Skusenosti: MAX^n| Level(%i): %s^n| Item: %s", SzClassName[gPlayerClass[id]], gPlayerLevel[id], SzLevelName[gPlayerLevel[id]], SzItemName[gPlayerItem[id][0]]);
 	} else 	
 	{
 		set_hudmessage(0, 255, 42, 0.02, 0.18, 0, 0.0, 0.3, 0.0, 0.0);
-		ShowSyncHudMsg(id, g_sync_hudmsg1, "| Trieda: %s^n| Skusenosti: %i / %i^n| Level(%i): %s^n| Item: %s", SzClassName[gPlayerClass[id]], gPlayerExperience[id], experience_level[gPlayerLevel[id]], gPlayerLevel[id], SzLevelName[gPlayerLevel[id]], SzItemName[gPlayerItem[id][0]]);
+		ShowSyncHudMsg(id, g_sync_hudmsg1, "| Trieda: %s^n| Skusenosti: %i / %i^n| Level(%i): %s^n| Item: %s", SzClassName[gPlayerClass[id]], gPlayerExperience[id], kalkulacia(gPlayerLevel[id]), gPlayerLevel[id], SzLevelName[gPlayerLevel[id]], SzItemName[gPlayerItem[id][0]]);
 	}
 	
 	if ( get_user_health(id) > 255 )
 	{
 		set_hudmessage(200, 200, 00, 0.02, 0.9, 0, 0.0, 0.3, 0.0, 0.0);
-		ShowSyncHudMsg(id, g_sync_hudmsg3, "Zivot: %i", get_user_health(id));
+		ShowSyncHudMsg(id, g_sync_hudmsg5, "Zivot: %i", get_user_health(id));
 	}
 	if ( g_iRocket[id] > 0 )
 	{
 		set_hudmessage(240, 220, 200, 0.79, -1.0, 0, 0.0, 0.3, 0.0, 0.0, 2);
-		ShowSyncHudMsg(id, g_sync_hudmsg4, "[Rakiet: %i]", g_iRocket[id]);
+		ShowSyncHudMsg(id, g_sync_hudmsg6, "[Rakiet: %i]", g_iRocket[id]);
 	}
 	if ( g_iMine[id] > 0 )
 	{
 		set_hudmessage(240, 220, 200, 0.77, -1.0, 0, 0.0, 0.3, 0.0, 0.0, 2);
-		ShowSyncHudMsg(id, g_sync_hudmsg4, "[Min: %i]", g_iMine[id]);
+		ShowSyncHudMsg(id, g_sync_hudmsg6, "[Min: %i]", g_iMine[id]);
 	}
 	if ( g_iFirstAidKit[id] > 0 )
 	{
 		set_hudmessage(240, 220, 200, 0.75, -1.0, 0, 0.0, 0.3, 0.0, 0.0, 2);
-		ShowSyncHudMsg(id, g_sync_hudmsg4, "[Lekarniciek: %i]", g_iFirstAidKit[id]);
+		ShowSyncHudMsg(id, g_sync_hudmsg6, "[Lekarniciek: %i]", g_iFirstAidKit[id]);
 	}
 	if ( g_iDynamit[id] > 0 )
 	{
 		set_hudmessage(240, 220, 200, 0.73, -1.0, 0, 0.0, 0.3, 0.0, 0.0, 2);
-		ShowSyncHudMsg(id, g_sync_hudmsg4, "[Dynamitov: %i]", g_iDynamit[id]);
+		ShowSyncHudMsg(id, g_sync_hudmsg6, "[Dynamitov: %i]", g_iDynamit[id]);
 	}
 	return PLUGIN_CONTINUE;
 }  
@@ -3698,7 +3949,7 @@ public Func_ChangerModel(id, reset)
 	}
 	else
 	{
-		new num = random_num(0,4);
+		new num = random_num(1,4);
 		switch ( get_user_team(id) )
 		{
 			case 1:
@@ -3726,6 +3977,9 @@ public Func_ChangerModel(id, reset)
 
 public Fwd_PlayerPreThink( id ) 
 {
+	new idAiming, iBodyPart;
+	get_user_aiming(id, idAiming, iBodyPart);
+    
 	if ( is_user_alive(id) ) 
 	{
 		new iTarget, iBody;
@@ -3754,6 +4008,7 @@ public Fwd_PlayerPreThink( id )
 			}
 		}
 	}
+	return PLUGIN_HANDLED;
 }
 
 public fnRemoveZoomed( id )
@@ -3895,11 +4150,6 @@ public Cmd_ShowHelpMotd(id)
 public Cmd_ShowModMotd(id)
 {
 	show_motd(id, "omode.txt", mCVARS[gGAMENAME]);
-}
-
-public Cmd_ShowVipMotd(id)
-{
-	show_motd(id, "vip.txt", "VIP VYHODY");
 }
 
 public Cmd_ResetPlayerScore(id)
@@ -4223,10 +4473,87 @@ stock fm_set_user_death(const id, const i_NewDeaths)
 	message_end();
 }
 
+public kalkulacia(level)
+	return power(level, 2)*100;
+
 stock fm_cs_set_user_money(id, value)
 {
 	set_pdata_int(id, OFFSET_CSMONEY, value, OFFSET_LINUX);
 }
+
+auto_exec_config(const szName[], bool:bAutoCreate=true)
+{
+	new szFileName[32];
+	new iLen = copy(szFileName, charsmax(szFileName), szName);
+	if( iLen <= 4 || !equal(szFileName[iLen-4], ".cfg") )
+	{
+		add(szFileName, charsmax(szFileName), ".cfg");
+	}
+	
+	new szConfigPath[96];
+	get_localinfo("amxx_configsdir", szConfigPath, charsmax(szConfigPath));
+	format(szConfigPath, charsmax(szConfigPath), "%s/%s", szConfigPath, szFileName);
+	
+	if( file_exists(szConfigPath) )
+	{
+		server_cmd("exec %s", szConfigPath);
+		server_exec();
+		return 1;
+	}
+	else if( bAutoCreate )
+	{
+		new fp = fopen(szConfigPath, "wt");
+		if( !fp )
+		{
+		    return -1;
+		}
+		new szPluginFileName[96], szPluginName[64], szAuthor[32], szVersion[32], szStatus[2];
+		new iPlugin = get_plugin(-1, 
+			    szPluginFileName, charsmax(szPluginFileName), 
+			    szPluginName, charsmax(szPluginName), 
+			    szVersion, charsmax(szVersion), 
+			    szAuthor, charsmax(szAuthor), 
+			    szStatus, charsmax(szStatus) );
+	
+		server_print("Plugin id is %d", iPlugin);
+		fprintf(fp, "; ^"%s^" configuration file^n", szPluginName);
+		fprintf(fp, "; Author : ^"%s^"^n", szAuthor);
+		fprintf(fp, "; Version : ^"%s^"^n", szVersion);
+		fprintf(fp, "; File : ^"%s^"^n", szPluginFileName);
+	
+		new iMax, i, szCommand[64], iCommandAccess, szCmdInfo[128], szFlags[32];
+		iMax = get_concmdsnum(-1, -1);
+		fprintf(fp, "^n; Console Commands :^n");
+		for(i=0; i<iMax; i++)
+		{
+			if( get_concmd_plid(i, -1, -1) == iPlugin )
+			{
+				get_concmd(i, 
+				szCommand, charsmax(szCommand), 
+				iCommandAccess, 
+				szCmdInfo, charsmax(szCmdInfo), 
+				-1, -1);
+				get_flags(iCommandAccess, szFlags, charsmax(szFlags));
+				fprintf(fp, "; %s | Access:^"%s^" | ^"%s^"^n", szCommand, szFlags, szCmdInfo);
+			}
+		}
+
+		iMax = get_plugins_cvarsnum();
+		new iTempId, iPcvar, szCvarName[256], szCvarValue[128];
+		fprintf(fp, "^n; Cvars :^n");
+		for(new i; i<iMax; i++)
+		{
+			get_plugins_cvar(i, szCvarName, charsmax(szCvarName), _, iTempId, iPcvar);
+			if( iTempId == iPlugin )
+			{
+				get_pcvar_string(iPcvar, szCvarValue, charsmax(szCvarValue));
+				fprintf(fp, "%s ^"%s^"^n", szCvarName, szCvarValue);
+			}
+		}
+		fclose(fp);
+	}
+	return 0;
+} 
 
 stock ColorMsg( const id , const input[] , any:... ) 
 {	
