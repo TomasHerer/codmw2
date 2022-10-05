@@ -3676,23 +3676,28 @@ public Func_PlayerRespawn(id)
 public Func_CheckPlayerLevel(id)
 {    
 	new limit_level = get_pcvar_num( mCVARS[gMAXLEVEL] );
+	new bool:level_up = false;
 
 	while( gPlayerExperience[id] >= kalkulacia(gPlayerLevel[id]) && gPlayerLevel[id] < limit_level )
 	{
-
 		gPlayerLevel[id]++;
+		gACHIEVEMENT[id][ ACH_LEVELUP ]++;
+		level_up = true;	
+		uITEMS[POINTS][id] = (gPlayerLevel[id]-1)*4-uITEMS[INTELIGENCIA][id]-uITEMS[ZIVOT][id]-uITEMS[VYTRVALOST][id]-uITEMS[RYCHLOST][id]-uITEMS[VESTA][id]-uITEMS[INTERVAL][id];
+	}
+	if( level_up )
+	{
+		uITEMS[POINTS][id] = (gPlayerLevel[id]-1)*4-uITEMS[INTELIGENCIA][id]-uITEMS[ZIVOT][id]-uITEMS[VYTRVALOST][id]-uITEMS[RYCHLOST][id]-uITEMS[VESTA][id]-uITEMS[INTERVAL][id];
 		set_hudmessage(60, 200, 25, -1.0, 0.25, 1, 1.0, 2.0, 0.1, 0.2, 2);
 		ShowSyncHudMsg(id, g_sync_hudmsg3, "Gratulujem! Dosiahol si %d level!", gPlayerLevel[id] );
 		ColorMsg(id, "^1[^4%s^1]^1 Gratulujeme ti k novemu levelu^3(%d)^4 %s^1. Vylepsi si dalsie kolo postavu.", PLUGIN, gPlayerLevel[id], SzLevelName[gPlayerLevel[id]] );
-		gACHIEVEMENT[id][ ACH_LEVELUP ]++;
-			
+		
 		new rsnd = random_num(0,1);
 		switch(rsnd)
 		{
 			case 0: client_cmd(id, "spk sound/%s", s_levelsound[0]);
 			case 1: client_cmd(id, "spk sound/%s", s_levelsound[1]);
 		}
-		uITEMS[POINTS][id] = (gPlayerLevel[id]-1)*4-uITEMS[INTELIGENCIA][id]-uITEMS[ZIVOT][id]-uITEMS[VYTRVALOST][id]-uITEMS[RYCHLOST][id]-uITEMS[VESTA][id]-uITEMS[INTERVAL][id];
 	}
 	SaveData(id);
 	return PLUGIN_CONTINUE;
