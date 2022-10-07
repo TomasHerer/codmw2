@@ -1,11 +1,3 @@
-/****************************************
-********* UPDATE COMMING SOON ***********
-*****************************************
-** -> Achievement
-** -> Nové postavy s novými zbraňami ( No/Vip )
-** -> Nové itemy do shopu ( First idea -> Bazooka )
-*/
-
 #include < amxmodx >
 #include < amxmisc >
 #include < cstrike >
@@ -541,6 +533,7 @@ public plugin_init()
 	register_forward( FM_GetGameDescription, "ForwardGameDescription" ); 
 	
 	RegisterHam( Ham_TakeDamage, "player", "Ham_PlayerDamage" );
+	RegisterHam( Ham_TakeDamage, "player", "Ham_PlayerDamagePost" );
 	RegisterHam( Ham_Spawn, "player", "Ham_PlayerSpawn", 1 );
 	RegisterHam( Ham_Killed, "player", "Ham_PlayerKilled" );
 	RegisterHam( Ham_Player_Jump,"player","Ham_PlayerJump" );
@@ -553,7 +546,7 @@ public plugin_init()
 	register_event( "SendAudio", "Event_DefuseBomb", "a", "2&%!MRAD_BOMBDEF" );
 	register_event( "BarTime", "Event_PlayerDefusing", "be", "1=10", "1=5" );
 	register_event( "DeathMsg", "Event_DeathMsg", "ade" );
-	register_event( "Damage", "Event_Damage", "b", "2!=0");
+	//register_event( "Damage", "Event_Damage", "b", "2!=0");
 	register_event( "CurWeapon","Event_CurWeapon","be", "1=1" );
 	register_event( "HLTV", "Event_NewRound", "a", "1=0", "2=0" );
 	register_event( "ResetHUD", "Event_ResetHud", "be" );
@@ -1300,10 +1293,32 @@ public Ham_PlayerDamage(this, idinflictor, idattacker, Float:damage, damagebits)
 	return HAM_IGNORED;
 }
 
+public Ham_PlayerDamagePost(id, idinflictor, attacker, Float:damage, damagebits)
+{
+	if(!is_user_connected(attacker) || !gPlayerClass[attacker])
+		return PLUGIN_CONTINUE;
+	
+	if ( gPlayerItem[attacker][0] == 12 && random_num(1, gPlayerItem[id][1]) == 1 )
+		Display_Fade(id,1<<14,1<<14 ,1<<16,255,155,50,230);
+
+	if(get_user_team(id) != get_user_team(attacker))
+	{
+		new bonuss = 1;
+		while(damage>20)
+		{
+			damage-=20;
+			gPlayerExperience[attacker] += bonuss;
+		}
+	}
+	Func_CheckPlayerLevel(attacker);
+	return HAM_IGNORED;
+}
+/*
 public Event_Damage(id)
 {
 	new attacker = get_user_attacker(id);
 	new damage = read_data(2);
+	
 	if(!is_user_connected(attacker) || !gPlayerClass[attacker])
 		return PLUGIN_CONTINUE;
 	
@@ -1322,7 +1337,7 @@ public Event_Damage(id)
 	Func_CheckPlayerLevel(attacker);
 	return PLUGIN_HANDLED;
 }
-
+*/
 public Event_DeathMsg()
 {
 	new id = read_data(2);
@@ -1336,14 +1351,14 @@ public Event_DeathMsg()
 	
 	if ( get_user_team(id) != get_user_team(attacker) && gPlayerClass[attacker] )
 	{
-			new new_bonus2 = get_pcvar_num(bCVARS[gKILL]);
+			//new new_bonus2 = get_pcvar_num(bCVARS[gKILL]);
 			new new_bonus = get_pcvar_num(bCVARS[gKILL]);
 			
 			if ( gPlayerClass[id] == Rambo && gPlayerClass[attacker] != Rambo )
-				new_bonus += get_pcvar_num(bCVARS[gKILL])*2;
+				new_bonus += get_pcvar_num(bCVARS[gKILL])*1;
 			
-			if ( gPlayerLevel[id] > gPlayerLevel[attacker] )
-				new_bonus += (gPlayerLevel[id] - gPlayerLevel[attacker])*(new_bonus2/40);
+			/*if ( gPlayerLevel[id] > gPlayerLevel[attacker] )
+				new_bonus += (gPlayerLevel[id] - gPlayerLevel[attacker])*(new_bonus2/40);*/
 				
 			if ( gPlayerClass[attacker] == Rambo || gPlayerItem[attacker][0] == 15 && maxClip[weapon] != -1 )
 			{
@@ -1351,19 +1366,19 @@ public Event_DeathMsg()
 				set_user_clip(attacker, maxClip[weapon]);
 				set_user_health(attacker, new_health);
 			}
-			if ( !gPlayerItem[attacker][0] )
+			/*if ( !gPlayerItem[attacker][0] )
 			{
 				Func_GiveItem(attacker, random_num(1, sizeof SzItemName-1));
 				set_task( 1.0 , "Func_TimerItem" , attacker, _, _, "b" );
 				g_iIntervalItemu[ attacker ] = uITEMS[INTERVAL2][attacker];
 
-			}
+			}*/
 			if ( gPlayerItem[attacker][0] == 14 )
 			{
 				new new_health = (health+50<uITEMS[OZIVENIE][attacker])? health+50: uITEMS[OZIVENIE][attacker];
 				set_user_health(attacker, new_health);
 			}
-			if ( get_user_flags(attacker) & VIP_ACCESS  )
+			/*if ( get_user_flags(attacker) & VIP_ACCESS  )
 			{
 				new ammount = get_pcvar_num(bCVARS[gHEALTHVIP]);
 				new zdravie = ( health+ammount < uITEMS[OZIVENIE][attacker] )? health+ammount: uITEMS[OZIVENIE][attacker];
@@ -1381,7 +1396,7 @@ public Event_DeathMsg()
 				ShowSyncHudMsg(attacker, g_sync_hudmsg4, "+%i XP", get_pcvar_num(bCVARS[gKILL]));
 			
 				gPlayerExperience[attacker] += new_bonus;
-			}
+			}*/
 			if ( gPlayerItem[attacker][0] == 32 )
 			{
 				new itemxp = 50;
@@ -1389,7 +1404,7 @@ public Event_DeathMsg()
 				set_hudmessage(255, 212, 0, 0.3, 0.1, 1, 6.0, 4.0);
 				ShowSyncHudMsg(attacker, g_sync_hudmsg4, "+%i XP", itemxp);
 			}
-			gACHIEVEMENT[attacker][ ACH_NORMALKILL ]++;
+			//gACHIEVEMENT[attacker][ ACH_NORMALKILL ]++;
 	}
 
 	if ( gPlayerItem[id][0] == 7 && random(3) == 2 || gPlayerClass[id] == Terminator && random(3) == 2 )
@@ -1411,7 +1426,7 @@ public Event_DeathMsg()
 	sMAXNUM[id][sXPPACK3] = 0;
 	cs_set_user_defuse(id, 0);
 	Func_CheckPlayerLevel(attacker);
-	Func_CheckAchievements(attacker);
+	//Func_CheckAchievements(attacker);
 	return PLUGIN_CONTINUE;
 }
 
@@ -1437,20 +1452,61 @@ public client_death(killer, victim, wpnindex, hitplace, TK)
 	return PLUGIN_CONTINUE;
 }
 
-public Ham_PlayerKilled(victim, attacker)
+public Ham_PlayerKilled(id, attacker)
 {
-	if (!is_user_connected(attacker) || !is_user_connected(victim) || is_user_bot(attacker) || attacker == victim || !attacker)
+	if (!is_user_connected(attacker) )
 		return HAM_IGNORED;
+		
+	new health = get_user_health(attacker);
+		
+	if ( get_user_team(id) != get_user_team(attacker) && gPlayerClass[attacker] )
+	{
+			new new_bonus2 = get_pcvar_num(bCVARS[gKILL]);
+			new new_bonus = get_pcvar_num(bCVARS[gKILL]);
+
+			if ( gPlayerLevel[id] > gPlayerLevel[attacker] )
+				new_bonus += (gPlayerLevel[id] - gPlayerLevel[attacker])*(new_bonus2/40);
+
+			if ( !gPlayerItem[attacker][0] )
+			{
+				Func_GiveItem(attacker, random_num(1, sizeof SzItemName-1));
+				set_task( 1.0 , "Func_TimerItem" , attacker, _, _, "b" );
+				g_iIntervalItemu[ attacker ] = uITEMS[INTERVAL2][attacker];
+
+			}
+			if ( get_user_flags(attacker) & VIP_ACCESS  )
+			{
+				new ammount = get_pcvar_num(bCVARS[gHEALTHVIP]);
+				new zdravie = ( health+ammount < uITEMS[OZIVENIE][attacker] )? health+ammount: uITEMS[OZIVENIE][attacker];
+				set_user_health(attacker, zdravie);
+			
+				gPlayerExperience[attacker] += get_pcvar_num(bCVARS[gKILLVIP]);
+				cs_set_user_money(attacker, cs_get_user_money(attacker) + get_cvar_num(bCVARS[gMONEYVIP]) );
+				
+				set_hudmessage(255, 212, 0, 0.50, 0.33, 1, 6.0, 4.0);
+				ShowSyncHudMsg(attacker, g_sync_hudmsg4, "+%i XP / +%i HP", get_pcvar_num(bCVARS[gKILLVIP]), get_pcvar_num(bCVARS[gHEALTHVIP]));
+			} 
+			else
+			{
+				set_hudmessage(255, 212, 0, 0.50, 0.33, 1, 6.0, 4.0);
+				ShowSyncHudMsg(attacker, g_sync_hudmsg4, "+%i XP", get_pcvar_num(bCVARS[gKILL]));
+			
+				gPlayerExperience[attacker] += new_bonus;
+			}
+			gACHIEVEMENT[attacker][ ACH_NORMALKILL ]++;
+	}
 	
 	new random_present = random_num(0, 7);
 	
 	if ( random_present == 1 || random_present == 3 || random_present == 5 || random_present == 7 )
 	{
 		new origin[3];
-		get_user_origin(victim, origin, 0);
+		get_user_origin(id, origin, 0);
 		
 		addItem(origin);
 	}
+	Func_CheckPlayerLevel(attacker);
+	Func_CheckAchievements(attacker);
 	return HAM_IGNORED;
 }
 
@@ -3393,9 +3449,9 @@ public SaveData(id)
 	new steamid[35];
 	get_user_authid(id, steamid, sizeof(steamid) - 1);
 
-	new fkey[84];
+	new fkey[104];
 	new fdata[456];
-	format(fkey,83,"%s-%i-codmw",steamid, gPlayerClass[ id ]);
+	format(fkey,103,"%s-%s-codmw",steamid, SzClassName[ gPlayerClass[id] ] );
 	format(fdata,455,"%i#%i#%i#%i#%i#%i#%i#%i"
 	, gPlayerExperience[ id ],
 	gPlayerLevel[ id ],
@@ -3408,7 +3464,7 @@ public SaveData(id)
 
 	fvault_set_data( fDataBase, fkey, fdata);
 
-	format(fkey,83,"%s-%i-codmwachievement",steamid, gPlayerClass[ id ]);
+	format(fkey,103,"%s-%s-codmwachievement",steamid, SzClassName[ gPlayerClass[id] ] );
 	format(fdata,455,"%i#%i#%i#%i#%i#%i#%i#%i",
 	gACHIEVEMENT[id][ ACH_NORMALKILL ],
 	gACHIEVEMENT[id][ ACH_HSKILL ],
@@ -3428,9 +3484,9 @@ public LoadData(id, class)
 	
 	new steamid[35];
 	get_user_authid(id, steamid, sizeof(steamid) - 1);
-	new fkey[84];
+	new fkey[104];
 	new fdata[456];
-	format(fkey,83,"%s-%i-codmw", steamid, class);
+	format(fkey,103,"%s-%s-codmw", steamid, SzClassName[ class ]);
 	format(fdata,455,"%i#%i#%i#%i#%i#%i#%i#%i",
 	gPlayerExperience[ id ],
 	gPlayerLevel[ id ],
@@ -3460,7 +3516,7 @@ public LoadData(id, class)
 	
 	// ACHIEVEMENTS
 	
-	format(fkey,83,"%s-%i-codmwachievement",steamid, gPlayerClass[ id ]);
+	format(fkey,103,"%s-%s-codmwachievement",steamid, SzClassName[ class ]);
 	format(fdata,455,"%i#%i#%i#%i#%i#%i#%i#%i",
 	gACHIEVEMENT[id][ ACH_NORMALKILL ],
 	gACHIEVEMENT[id][ ACH_HSKILL ],
@@ -3675,6 +3731,9 @@ public Func_PlayerRespawn(id)
 
 public Func_CheckPlayerLevel(id)
 {    
+	if(!is_user_connected(id))
+		return;
+		
 	new limit_level = get_pcvar_num( mCVARS[gMAXLEVEL] );
 	new bool:level_up = false;
 
@@ -3700,7 +3759,6 @@ public Func_CheckPlayerLevel(id)
 		}
 	}
 	SaveData(id);
-	return PLUGIN_CONTINUE;
 }
 
 public Func_CheckAchievements(id)
